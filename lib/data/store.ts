@@ -8,11 +8,16 @@ import {
   SERVICIOS,
   seedAtenciones,
   seedCitas,
+  seedEvoluciones,
+  seedHistorias,
 } from "./seed";
 import type {
   Atencion,
   Cita,
   EstadoCita,
+  EvolucionSesion,
+  HistoriaClinica,
+  MetodoPago,
   Paciente,
   Psicologo,
   Servicio,
@@ -34,6 +39,8 @@ interface DbState {
   servicios: Servicio[];
   citas: Cita[];
   atenciones: Atencion[];
+  historias: HistoriaClinica[];
+  evoluciones: EvolucionSesion[];
 
   // Pacientes
   addPaciente: (data: Omit<Paciente, "id" | "creadoEn">) => Paciente;
@@ -49,6 +56,17 @@ interface DbState {
   // Atenciones
   addAtencion: (data: Omit<Atencion, "id" | "creadoEn">) => Atencion;
   updateAtencion: (id: string, data: Partial<Atencion>) => void;
+  /** Registra el cobro de una atención (método local) y la marca pagada. */
+  registrarCobro: (id: string, metodo: MetodoPago) => void;
+
+  // Historia clínica
+  upsertHistoria: (
+    pacienteId: string,
+    data: Partial<Omit<HistoriaClinica, "pacienteId">>,
+  ) => void;
+  addEvolucion: (data: Omit<EvolucionSesion, "id" | "creadoEn">) => EvolucionSesion;
+  updateEvolucion: (id: string, data: Partial<EvolucionSesion>) => void;
+  deleteEvolucion: (id: string) => void;
 
   setHydrated: () => void;
 }
@@ -62,6 +80,8 @@ export const useDb = create<DbState>()(
       servicios: SERVICIOS,
       citas: seedCitas(),
       atenciones: seedAtenciones(),
+      historias: seedHistorias(),
+      evoluciones: seedEvoluciones(),
 
       addPaciente: (data) => {
         const paciente: Paciente = {
@@ -112,6 +132,47 @@ export const useDb = create<DbState>()(
         set((s) => ({
           atenciones: s.atenciones.map((a) => (a.id === id ? { ...a, ...data } : a)),
         })),
+      registrarCobro: (id, metodo) =>
+        set((s) => ({
+          atenciones: s.atenciones.map((a) =>
+            a.id === id ? { ...a, estadoPago: "Pagado", metodoPago: metodo } : a,
+          ),
+        })),
+
+      upsertHistoria: (pacienteId, data) =>
+        set((s) => {
+          const now = new Date().toISOString();
+          const existe = s.historias.find((h) => h.pacienteId === pacienteId);
+          if (existe) {
+            return {
+              historias: s.historias.map((h) =>
+                h.pacienteId === pacienteId ? { ...h, ...data, actualizadoEn: now } : h,
+              ),
+            };
+          }
+          const nueva: HistoriaClinica = {
+            pacienteId,
+            fechaApertura: now.slice(0, 10),
+            actualizadoEn: now,
+            ...data,
+          };
+          return { historias: [...s.historias, nueva] };
+        }),
+      addEvolucion: (data) => {
+        const evolucion: EvolucionSesion = {
+          ...data,
+          id: newId("evo"),
+          creadoEn: new Date().toISOString(),
+        };
+        set((s) => ({ evoluciones: [evolucion, ...s.evoluciones] }));
+        return evolucion;
+      },
+      updateEvolucion: (id, data) =>
+        set((s) => ({
+          evoluciones: s.evoluciones.map((e) => (e.id === id ? { ...e, ...data } : e)),
+        })),
+      deleteEvolucion: (id) =>
+        set((s) => ({ evoluciones: s.evoluciones.filter((e) => e.id !== id) })),
 
       setHydrated: () => set({ hydrated: true }),
     }),
@@ -123,6 +184,8 @@ export const useDb = create<DbState>()(
         pacientes: s.pacientes,
         citas: s.citas,
         atenciones: s.atenciones,
+        historias: s.historias,
+        evoluciones: s.evoluciones,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();

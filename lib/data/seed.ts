@@ -5,6 +5,8 @@
 import type {
   Atencion,
   Cita,
+  EvolucionSesion,
+  HistoriaClinica,
   Paciente,
   Psicologo,
   Servicio,
@@ -86,8 +88,64 @@ export function seedCitas(): Cita[] {
 export function seedAtenciones(): Atencion[] {
   const now = new Date().toISOString();
   return [
-    { id: "atn-1", citaId: "cit-9", pacienteId: "pac-1", psicologoId: "psi-1", servicioId: "srv-1", fecha: isoDate(-7), hora: "09:00", notas: "Sesión de seguimiento. Buena evolución.", monto: 80, estadoPago: "Pagado", creadoEn: now },
-    { id: "atn-2", citaId: "cit-10", pacienteId: "pac-2", psicologoId: "psi-1", servicioId: "srv-1", fecha: isoDate(-5), hora: "10:30", notas: "Trabajo en manejo de duelo.", monto: 80, estadoPago: "Pagado", creadoEn: now },
+    { id: "atn-1", citaId: "cit-9", pacienteId: "pac-1", psicologoId: "psi-1", servicioId: "srv-1", fecha: isoDate(-7), hora: "09:00", notas: "Sesión de seguimiento. Buena evolución.", monto: 80, estadoPago: "Pagado", metodoPago: "Yape", creadoEn: now },
+    { id: "atn-2", citaId: "cit-10", pacienteId: "pac-2", psicologoId: "psi-1", servicioId: "srv-1", fecha: isoDate(-5), hora: "10:30", notas: "Trabajo en manejo de duelo.", monto: 80, estadoPago: "Pagado", metodoPago: "Efectivo", creadoEn: now },
     { id: "atn-3", citaId: "cit-12", pacienteId: "pac-10", psicologoId: "psi-2", servicioId: "srv-5", fecha: isoDate(-2), hora: "12:00", notas: "Primera sesión familiar.", monto: 160, estadoPago: "Pendiente", creadoEn: now },
+  ];
+}
+
+/** Historias clínicas abiertas (una por paciente con seguimiento). */
+export function seedHistorias(): HistoriaClinica[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      pacienteId: "pac-1",
+      fechaApertura: "2026-01-15",
+      antecedentes: "Sin antecedentes psiquiátricos previos. Refiere episodios de ansiedad desde hace 6 meses asociados a carga laboral.",
+      diagnostico: "Trastorno de ansiedad generalizada (presuntivo).",
+      planTratamiento: "Terapia cognitivo-conductual semanal. Técnicas de respiración y reestructuración cognitiva.",
+      objetivos: "Reducir la frecuencia de episodios de ansiedad y mejorar el manejo del estrés laboral.",
+      actualizadoEn: now,
+    },
+    {
+      pacienteId: "pac-2",
+      fechaApertura: "2026-02-03",
+      antecedentes: "Duelo por pérdida familiar reciente. Buen soporte social.",
+      diagnostico: "Reacción de duelo.",
+      planTratamiento: "Acompañamiento terapéutico y elaboración del duelo.",
+      objetivos: "Elaborar la pérdida y retomar rutinas cotidianas.",
+      actualizadoEn: now,
+    },
+  ];
+}
+
+/** Notas de evolución por sesión (para historias ya abiertas). */
+export function seedEvoluciones(): EvolucionSesion[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "evo-1",
+      pacienteId: "pac-1",
+      psicologoId: "psi-1",
+      atencionId: "atn-1",
+      fecha: isoDate(-7),
+      hora: "09:00",
+      motivo: "Sesión de seguimiento",
+      observaciones: "La paciente reporta menor frecuencia de episodios de ansiedad. Practicó las técnicas de respiración con buenos resultados.",
+      acuerdos: "Continuar registro diario de emociones. Tarea: identificar pensamientos automáticos.",
+      creadoEn: now,
+    },
+    {
+      id: "evo-2",
+      pacienteId: "pac-2",
+      psicologoId: "psi-1",
+      atencionId: "atn-2",
+      fecha: isoDate(-5),
+      hora: "10:30",
+      motivo: "Manejo de duelo",
+      observaciones: "Se trabajó la expresión emocional. El paciente logra hablar de la pérdida con menor angustia.",
+      acuerdos: "Retomar una actividad social esta semana.",
+      creadoEn: now,
+    },
   ];
 }

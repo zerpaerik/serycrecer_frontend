@@ -1,7 +1,14 @@
 "use client";
 
+import * as React from "react";
 import { useDb } from "./store";
-import type { Paciente, Psicologo, Servicio } from "./types";
+import type {
+  EvolucionSesion,
+  HistoriaClinica,
+  Paciente,
+  Psicologo,
+  Servicio,
+} from "./types";
 
 /** ¿El store ya rehidrató desde localStorage? Evita parpadeos/mismatch. */
 export function useDbReady(): boolean {
@@ -18,6 +25,23 @@ export function usePsicologo(id?: string): Psicologo | undefined {
 
 export function useServicio(id?: string): Servicio | undefined {
   return useDb((s) => s.servicios.find((x) => x.id === id));
+}
+
+export function useHistoria(pacienteId?: string): HistoriaClinica | undefined {
+  return useDb((s) => s.historias.find((h) => h.pacienteId === pacienteId));
+}
+
+export function useEvoluciones(pacienteId?: string): EvolucionSesion[] {
+  // Seleccionamos el array estable y derivamos con useMemo: crear un array
+  // nuevo dentro del selector rompería la caché de useSyncExternalStore.
+  const evoluciones = useDb((s) => s.evoluciones);
+  return React.useMemo(
+    () =>
+      evoluciones
+        .filter((e) => e.pacienteId === pacienteId)
+        .sort((a, b) => (a.fecha < b.fecha ? 1 : -1)),
+    [evoluciones, pacienteId],
+  );
 }
 
 /** Nombre del psicólogo por id (o "—"). */

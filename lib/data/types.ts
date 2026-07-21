@@ -55,11 +55,27 @@ export interface Cita {
   fecha: string; // ISO "YYYY-MM-DD"
   hora: string; // "HH:mm"
   estado: EstadoCita;
+  /** El paciente asistió con retraso. */
+  tardanza?: boolean;
   notas?: string;
   creadoEn: string;
 }
 
 export type EstadoPago = "Pagado" | "Pendiente";
+export type MetodoPago =
+  | "Efectivo"
+  | "Yape"
+  | "Plin"
+  | "Tarjeta"
+  | "Transferencia";
+
+export const METODOS_PAGO: MetodoPago[] = [
+  "Efectivo",
+  "Yape",
+  "Plin",
+  "Tarjeta",
+  "Transferencia",
+];
 
 export interface Atencion {
   id: string;
@@ -72,5 +88,31 @@ export interface Atencion {
   notas?: string;
   monto: number;
   estadoPago: EstadoPago;
+  metodoPago?: MetodoPago;
+  creadoEn: string;
+}
+
+/** Encabezado clínico del paciente (uno por paciente). */
+export interface HistoriaClinica {
+  pacienteId: string;
+  fechaApertura: string; // ISO "YYYY-MM-DD"
+  antecedentes?: string;
+  diagnostico?: string;
+  planTratamiento?: string;
+  objetivos?: string;
+  actualizadoEn: string;
+}
+
+/** Nota de evolución de una sesión dentro de la historia clínica. */
+export interface EvolucionSesion {
+  id: string;
+  pacienteId: string;
+  psicologoId: string;
+  atencionId?: string;
+  fecha: string; // ISO "YYYY-MM-DD"
+  hora: string; // "HH:mm"
+  motivo?: string;
+  observaciones: string;
+  acuerdos?: string;
   creadoEn: string;
 }
