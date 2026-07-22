@@ -2,6 +2,7 @@
  * Tipos del dominio del consultorio psicológico "Ser y Crecer".
  * Todo el modelo es simulado en frontend (mock).
  */
+import type { RoleId } from "@/lib/auth/roles";
 
 export type TipoDoc = "DNI" | "CE" | "Pasaporte";
 export type Sexo = "Femenino" | "Masculino" | "Otro";
@@ -30,6 +31,31 @@ export interface Psicologo {
   nombre: string; // p. ej. "Lic. Camila Torres"
   especialidad: string;
   color: string; // hex para agenda/badges
+  email?: string;
+  telefono?: string;
+  horario?: string;
+}
+
+export type EstadoUsuario = "Activo" | "Inactivo";
+
+export interface Usuario {
+  id: string;
+  nombre: string;
+  email: string;
+  roleId: RoleId;
+  estado: EstadoUsuario;
+  creadoEn: string;
+}
+
+/** Configuración general del consultorio. */
+export interface ConsultorioConfig {
+  nombre: string;
+  ruc?: string;
+  direccion?: string;
+  telefono?: string;
+  email?: string;
+  horario?: string;
+  moneda: string;
 }
 
 export interface Servicio {

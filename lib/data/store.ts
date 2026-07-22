@@ -3,9 +3,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
+  CONFIG_DEFAULT,
   PACIENTES,
   PSICOLOGOS,
   SERVICIOS,
+  USUARIOS,
   seedAtenciones,
   seedCitas,
   seedEvoluciones,
@@ -14,6 +16,7 @@ import {
 import type {
   Atencion,
   Cita,
+  ConsultorioConfig,
   EstadoCita,
   EvolucionSesion,
   HistoriaClinica,
@@ -21,6 +24,7 @@ import type {
   Paciente,
   Psicologo,
   Servicio,
+  Usuario,
 } from "./types";
 
 /** ID corto único para nuevos registros. */
@@ -41,6 +45,8 @@ interface DbState {
   atenciones: Atencion[];
   historias: HistoriaClinica[];
   evoluciones: EvolucionSesion[];
+  usuarios: Usuario[];
+  config: ConsultorioConfig;
 
   // Pacientes
   addPaciente: (data: Omit<Paciente, "id" | "creadoEn">) => Paciente;
@@ -68,6 +74,21 @@ interface DbState {
   updateEvolucion: (id: string, data: Partial<EvolucionSesion>) => void;
   deleteEvolucion: (id: string) => void;
 
+  // Administración
+  addUsuario: (data: Omit<Usuario, "id" | "creadoEn">) => Usuario;
+  updateUsuario: (id: string, data: Partial<Usuario>) => void;
+  deleteUsuario: (id: string) => void;
+
+  addPsicologo: (data: Omit<Psicologo, "id">) => Psicologo;
+  updatePsicologo: (id: string, data: Partial<Psicologo>) => void;
+  deletePsicologo: (id: string) => void;
+
+  addServicio: (data: Omit<Servicio, "id">) => Servicio;
+  updateServicio: (id: string, data: Partial<Servicio>) => void;
+  deleteServicio: (id: string) => void;
+
+  updateConfig: (data: Partial<ConsultorioConfig>) => void;
+
   setHydrated: () => void;
 }
 
@@ -82,6 +103,8 @@ export const useDb = create<DbState>()(
       atenciones: seedAtenciones(),
       historias: seedHistorias(),
       evoluciones: seedEvoluciones(),
+      usuarios: USUARIOS,
+      config: CONFIG_DEFAULT,
 
       addPaciente: (data) => {
         const paciente: Paciente = {
@@ -174,6 +197,48 @@ export const useDb = create<DbState>()(
       deleteEvolucion: (id) =>
         set((s) => ({ evoluciones: s.evoluciones.filter((e) => e.id !== id) })),
 
+      addUsuario: (data) => {
+        const usuario: Usuario = {
+          ...data,
+          id: newId("usr"),
+          creadoEn: new Date().toISOString(),
+        };
+        set((s) => ({ usuarios: [usuario, ...s.usuarios] }));
+        return usuario;
+      },
+      updateUsuario: (id, data) =>
+        set((s) => ({
+          usuarios: s.usuarios.map((u) => (u.id === id ? { ...u, ...data } : u)),
+        })),
+      deleteUsuario: (id) =>
+        set((s) => ({ usuarios: s.usuarios.filter((u) => u.id !== id) })),
+
+      addPsicologo: (data) => {
+        const psicologo: Psicologo = { ...data, id: newId("psi") };
+        set((s) => ({ psicologos: [...s.psicologos, psicologo] }));
+        return psicologo;
+      },
+      updatePsicologo: (id, data) =>
+        set((s) => ({
+          psicologos: s.psicologos.map((p) => (p.id === id ? { ...p, ...data } : p)),
+        })),
+      deletePsicologo: (id) =>
+        set((s) => ({ psicologos: s.psicologos.filter((p) => p.id !== id) })),
+
+      addServicio: (data) => {
+        const servicio: Servicio = { ...data, id: newId("srv") };
+        set((s) => ({ servicios: [...s.servicios, servicio] }));
+        return servicio;
+      },
+      updateServicio: (id, data) =>
+        set((s) => ({
+          servicios: s.servicios.map((x) => (x.id === id ? { ...x, ...data } : x)),
+        })),
+      deleteServicio: (id) =>
+        set((s) => ({ servicios: s.servicios.filter((x) => x.id !== id) })),
+
+      updateConfig: (data) => set((s) => ({ config: { ...s.config, ...data } })),
+
       setHydrated: () => set({ hydrated: true }),
     }),
     {
@@ -186,6 +251,10 @@ export const useDb = create<DbState>()(
         atenciones: s.atenciones,
         historias: s.historias,
         evoluciones: s.evoluciones,
+        usuarios: s.usuarios,
+        psicologos: s.psicologos,
+        servicios: s.servicios,
+        config: s.config,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();

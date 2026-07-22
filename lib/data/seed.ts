@@ -5,11 +5,13 @@
 import type {
   Atencion,
   Cita,
+  ConsultorioConfig,
   EvolucionSesion,
   HistoriaClinica,
   Paciente,
   Psicologo,
   Servicio,
+  Usuario,
 } from "./types";
 
 const TEAL = "#0d9488";
@@ -26,10 +28,28 @@ function isoDate(offset = 0): string {
 }
 
 export const PSICOLOGOS: Psicologo[] = [
-  { id: "psi-1", nombre: "Lic. Camila Torres", especialidad: "Psicología clínica", color: VIOLET },
-  { id: "psi-2", nombre: "Lic. Mateo Ríos", especialidad: "Terapia de pareja y familia", color: SKY },
-  { id: "psi-3", nombre: "Lic. Ana Beltrán", especialidad: "Psicología infantil", color: TEAL },
+  { id: "psi-1", nombre: "Lic. Camila Torres", especialidad: "Psicología clínica", color: VIOLET, email: "psicologo@serycrecer.pe", telefono: "987111000", horario: "Lun a Vie · 9:00–18:00" },
+  { id: "psi-2", nombre: "Lic. Mateo Ríos", especialidad: "Terapia de pareja y familia", color: SKY, email: "mateo.rios@serycrecer.pe", telefono: "987222000", horario: "Lun, Mié, Vie · 10:00–19:00" },
+  { id: "psi-3", nombre: "Lic. Ana Beltrán", especialidad: "Psicología infantil", color: TEAL, email: "ana.beltran@serycrecer.pe", telefono: "987333000", horario: "Mar a Sáb · 8:00–15:00" },
 ];
+
+export const USUARIOS: Usuario[] = [
+  { id: "usr-1", nombre: "Erik Zerpa", email: "admin@serycrecer.pe", roleId: 1, estado: "Activo", creadoEn: "2026-01-02T09:00:00Z" },
+  { id: "usr-2", nombre: "Lic. Camila Torres", email: "psicologo@serycrecer.pe", roleId: 2, estado: "Activo", creadoEn: "2026-01-05T09:00:00Z" },
+  { id: "usr-3", nombre: "Andrea Flores", email: "recepcion@serycrecer.pe", roleId: 3, estado: "Activo", creadoEn: "2026-01-08T09:00:00Z" },
+  { id: "usr-4", nombre: "Lic. Mateo Ríos", email: "mateo.rios@serycrecer.pe", roleId: 2, estado: "Activo", creadoEn: "2026-02-11T09:00:00Z" },
+  { id: "usr-5", nombre: "Lic. Ana Beltrán", email: "ana.beltran@serycrecer.pe", roleId: 2, estado: "Inactivo", creadoEn: "2026-03-01T09:00:00Z" },
+];
+
+export const CONFIG_DEFAULT: ConsultorioConfig = {
+  nombre: "Ser y Crecer",
+  ruc: "20123456789",
+  direccion: "Av. Arequipa 1234, Lince — Lima",
+  telefono: "(01) 555-1234",
+  email: "contacto@serycrecer.pe",
+  horario: "Lunes a Sábado · 8:00–20:00",
+  moneda: "PEN",
+};
 
 export const SERVICIOS: Servicio[] = [
   { id: "srv-1", nombre: "Terapia individual", duracionMin: 50, precio: 80, color: TEAL },
