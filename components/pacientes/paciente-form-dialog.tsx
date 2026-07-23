@@ -114,17 +114,21 @@ export function PacienteFormDialog({
     if (open) reset(toValues(paciente));
   }, [open, paciente, reset]);
 
-  function onSubmit(v: Values) {
-    if (isEdit && paciente) {
-      updatePaciente(paciente.id, v);
-      toast.success("Paciente actualizado");
-      onSaved?.(paciente.id);
-    } else {
-      const nuevo = addPaciente(v);
-      toast.success("Paciente registrado");
-      onSaved?.(nuevo.id);
+  async function onSubmit(v: Values) {
+    try {
+      if (isEdit && paciente) {
+        await updatePaciente(paciente.id, v);
+        toast.success("Paciente actualizado");
+        onSaved?.(paciente.id);
+      } else {
+        const nuevo = await addPaciente(v);
+        toast.success("Paciente registrado");
+        onSaved?.(nuevo.id);
+      }
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo guardar");
     }
-    onOpenChange(false);
   }
 
   return (

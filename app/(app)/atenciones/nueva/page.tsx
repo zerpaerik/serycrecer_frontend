@@ -79,9 +79,7 @@ function RegistroInner() {
   const atenciones = useDb((s) => s.atenciones);
   const paquetesPaciente = useDb((s) => s.paquetesPaciente);
   const addAtencion = useDb((s) => s.addAtencion);
-  const addPaquetePaciente = useDb((s) => s.addPaquetePaciente);
-  const setEstadoCita = useDb((s) => s.setEstadoCita);
-  const updateCita = useDb((s) => s.updateCita);
+  const [guardando, setGuardando] = React.useState(false);
 
   const cita = citaId ? citas.find((c) => c.id === citaId) : undefined;
 
@@ -122,54 +120,42 @@ function RegistroInner() {
     setItems((prev) => prev.filter((it) => it.uid !== u));
   }
 
-  function guardar() {
+  async function guardar() {
     if (!pacienteId) return toast.error("Selecciona un paciente");
     if (!psicologoId) return toast.error("Selecciona un psicólogo");
     if (items.length === 0) return toast.error("Agrega al menos un ítem");
     if (abonado > total) return toast.error("El abono no puede superar el total");
 
-    const nueva = addAtencion({
-      pacienteId,
-      psicologoId,
-      citaId: cita?.id,
-      fecha: cita?.fecha ?? hoyIso(),
-      hora: cita?.hora,
-      observaciones,
-      items: items.map((it) => ({
-        id: newUid(),
-        tipo: it.tipo,
-        nombre: it.nombre,
-        monto: Number(it.monto) || 0,
-        servicioId: it.servicioId,
-        paqueteId: it.paqueteId,
-      })),
-      pagos: pagos
-        .filter((p) => Number(p.monto) > 0)
-        .map((p) => ({ id: newUid(), monto: Number(p.monto), metodo: p.metodo, tipo: "Abono inicial" as const, fecha: hoyIso() })),
-    });
-
-    // Crea los paquetes de sesiones adquiridos
-    items
-      .filter((it) => it.tipo === "Paquete" && it.paqueteId)
-      .forEach((it) => {
-        addPaquetePaciente({
-          pacienteId,
-          paqueteId: it.paqueteId!,
+    setGuardando(true);
+    try {
+      // El backend crea la atención, sus pagos, el paquete de sesiones
+      // (por cada ítem de tipo Paquete) y marca la cita como Atendida.
+      const nueva = await addAtencion({
+        pacienteId,
+        psicologoId,
+        citaId: cita?.id,
+        fecha: cita?.fecha ?? hoyIso(),
+        hora: cita?.hora,
+        observaciones,
+        items: items.map((it) => ({
+          id: newUid(),
+          tipo: it.tipo,
           nombre: it.nombre,
-          totalSesiones: it.sesiones ?? 0,
-          precio: Number(it.monto) || 0,
-          fecha: hoyIso(),
-          atencionId: nueva.id,
-        });
+          monto: Number(it.monto) || 0,
+          servicioId: it.servicioId,
+          paqueteId: it.paqueteId,
+        })),
+        pagos: pagos
+          .filter((p) => Number(p.monto) > 0)
+          .map((p) => ({ id: newUid(), monto: Number(p.monto), metodo: p.metodo, tipo: "Abono inicial" as const, fecha: hoyIso() })),
       });
 
-    if (cita) {
-      updateCita(cita.id, { estado: "Atendida" });
-      setEstadoCita(cita.id, "Atendida");
+      toast.success("Atención registrada");
+      router.push(`/atenciones/${nueva.id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo registrar la atención");
+      setGuardando(false);
     }
-
-    toast.success("Atención registrada");
-    router.push(`/atenciones/${nueva.id}`);
   }
 
   // Historial del paciente
@@ -287,7 +273,7 @@ function RegistroInner() {
               ) : total > 0 ? (
                 <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">Pago completo: la atención queda saldada.</p>
               ) : null}
-              <Button className="w-full bg-brand-gradient text-white" onClick={guardar}>Registrar atención</Button>
+              <Button className="w-full bg-brand-gradient text-white" onClick={guardar} disabled={guardando}>{guardando ? "Registrando…" : "Registrar atención"}</Button>
             </CardContent>
           </Card>
         </div>

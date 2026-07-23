@@ -1,20 +1,9 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import {
-  CONFIG_DEFAULT,
-  PACIENTES,
-  PAQUETES,
-  PSICOLOGOS,
-  SERVICIOS,
-  USUARIOS,
-  seedAtenciones,
-  seedCitas,
-  seedEvoluciones,
-  seedHistorias,
-  seedPaquetesPaciente,
-} from "./seed";
+import { api } from "@/lib/api/client";
+import * as M from "./mappers";
+import { toId } from "./mappers";
 import type {
   Atencion,
   Cita,
@@ -22,382 +11,366 @@ import type {
   EstadoCita,
   EvaluacionNeuro,
   EvolucionSesion,
-  HistoriaClinica,
   ObjetivoTrabajo,
   Paciente,
   Pago,
   Paquete,
-  PaquetePaciente,
   Psicologo,
   RespuestaValor,
   Servicio,
   Usuario,
 } from "./types";
 
-/** ID corto único para nuevos registros. */
-function newId(prefix: string): string {
-  const rand =
+/** Id efímero para objetivos (se guardan como JSON en el backend). */
+function uid(prefix: string): string {
+  const r =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID().slice(0, 8)
       : Math.random().toString(36).slice(2, 10);
-  return `${prefix}-${rand}`;
+  return `${prefix}-${r}`;
 }
 
-/** Crea o actualiza la evaluación de un paciente aplicando `fn`. */
-function upsertEval(
-  lista: EvaluacionNeuro[],
-  pacienteId: string,
-  fn: (ev: EvaluacionNeuro) => EvaluacionNeuro,
-): EvaluacionNeuro[] {
-  const now = new Date().toISOString();
-  const existe = lista.find((e) => e.pacienteId === pacienteId);
-  const base: EvaluacionNeuro =
-    existe ?? { pacienteId, respuestas: {}, objetivos: [], actualizadoEn: now };
-  const actualizado = { ...fn(base), actualizadoEn: now };
-  return existe
-    ? lista.map((e) => (e.pacienteId === pacienteId ? actualizado : e))
-    : [...lista, actualizado];
-}
+const CONFIG_DEFAULT: ConsultorioConfig = { nombre: "Ser y Crecer", moneda: "PEN" };
+
+type CollKey =
+  | "pacientes" | "psicologos" | "servicios" | "paquetes" | "paquetesPaciente"
+  | "citas" | "atenciones" | "evaluaciones" | "evoluciones" | "usuarios" | "config";
 
 interface DbState {
   hydrated: boolean;
   pacientes: Paciente[];
   psicologos: Psicologo[];
   servicios: Servicio[];
+  paquetes: Paquete[];
+  paquetesPaciente: import("./types").PaquetePaciente[];
   citas: Cita[];
   atenciones: Atencion[];
-  paquetes: Paquete[];
-  paquetesPaciente: PaquetePaciente[];
-  historias: HistoriaClinica[];
-  evoluciones: EvolucionSesion[];
   evaluaciones: EvaluacionNeuro[];
+  evoluciones: EvolucionSesion[];
   usuarios: Usuario[];
   config: ConsultorioConfig;
 
-  // Pacientes
-  addPaciente: (data: Omit<Paciente, "id" | "creadoEn">) => Paciente;
-  updatePaciente: (id: string, data: Partial<Paciente>) => void;
-  deletePaciente: (id: string) => void;
+  loadAll: () => Promise<void>;
+  refresh: (keys: CollKey[]) => Promise<void>;
 
-  // Citas
-  addCita: (data: Omit<Cita, "id" | "creadoEn">) => Cita;
-  updateCita: (id: string, data: Partial<Cita>) => void;
-  setEstadoCita: (id: string, estado: EstadoCita) => void;
-  deleteCita: (id: string) => void;
+  addPaciente: (data: Omit<Paciente, "id" | "creadoEn">) => Promise<Paciente>;
+  updatePaciente: (id: string, data: Partial<Paciente>) => Promise<void>;
+  deletePaciente: (id: string) => Promise<void>;
 
-  // Atenciones
-  addAtencion: (data: Omit<Atencion, "id" | "creadoEn">) => Atencion;
-  updateAtencion: (id: string, data: Partial<Atencion>) => void;
-  /** Agrega un pago (abono) a una atención. */
-  agregarPago: (atencionId: string, pago: Omit<Pago, "id">) => void;
-  /** Anula una atención (soft-delete con motivo). */
-  anularAtencion: (id: string, motivo: string) => void;
+  addCita: (data: Omit<Cita, "id" | "creadoEn">) => Promise<Cita>;
+  updateCita: (id: string, data: Partial<Cita>) => Promise<void>;
+  setEstadoCita: (id: string, estado: EstadoCita) => Promise<void>;
+  deleteCita: (id: string) => Promise<void>;
 
-  // Paquetes
-  addPaquete: (data: Omit<Paquete, "id">) => Paquete;
-  updatePaquete: (id: string, data: Partial<Paquete>) => void;
-  deletePaquete: (id: string) => void;
-  addPaquetePaciente: (data: Omit<PaquetePaciente, "id" | "creadoEn">) => PaquetePaciente;
+  addAtencion: (data: Omit<Atencion, "id" | "creadoEn">) => Promise<Atencion>;
+  updateAtencion: (id: string, data: Partial<Atencion>) => Promise<void>;
+  agregarPago: (atencionId: string, pago: Omit<Pago, "id">) => Promise<void>;
+  anularAtencion: (id: string, motivo: string) => Promise<void>;
 
-  // Historia clínica
-  upsertHistoria: (
-    pacienteId: string,
-    data: Partial<Omit<HistoriaClinica, "pacienteId">>,
-  ) => void;
-  addEvolucion: (data: Omit<EvolucionSesion, "id" | "creadoEn">) => EvolucionSesion;
-  updateEvolucion: (id: string, data: Partial<EvolucionSesion>) => void;
-  deleteEvolucion: (id: string) => void;
+  addPaquete: (data: Omit<Paquete, "id">) => Promise<Paquete>;
+  updatePaquete: (id: string, data: Partial<Paquete>) => Promise<void>;
+  deletePaquete: (id: string) => Promise<void>;
 
-  // Evaluación neuropsicológica (historia estructurada)
+  addUsuario: (data: Omit<Usuario, "id" | "creadoEn"> & { password?: string }) => Promise<Usuario>;
+  updateUsuario: (id: string, data: Partial<Usuario> & { password?: string }) => Promise<void>;
+  deleteUsuario: (id: string) => Promise<void>;
+
+  addPsicologo: (data: Omit<Psicologo, "id">) => Promise<Psicologo>;
+  updatePsicologo: (id: string, data: Partial<Psicologo>) => Promise<void>;
+  deletePsicologo: (id: string) => Promise<void>;
+
+  addServicio: (data: Omit<Servicio, "id">) => Promise<Servicio>;
+  updateServicio: (id: string, data: Partial<Servicio>) => Promise<void>;
+  deleteServicio: (id: string) => Promise<void>;
+
+  updateConfig: (data: Partial<ConsultorioConfig>) => Promise<void>;
+
   setRespuesta: (pacienteId: string, fieldId: string, valor: RespuestaValor) => void;
-  setEvalCampo: (
-    pacienteId: string,
-    campo: "obsConducta" | "obsFamilia" | "obsEscolar" | "informe",
-    valor: string,
-  ) => void;
+  setEvalCampo: (pacienteId: string, campo: "obsConducta" | "obsFamilia" | "obsEscolar" | "informe", valor: string) => void;
   addObjetivo: (pacienteId: string, texto: string) => void;
   updateObjetivo: (pacienteId: string, objetivoId: string, data: Partial<ObjetivoTrabajo>) => void;
   deleteObjetivo: (pacienteId: string, objetivoId: string) => void;
 
-  // Administración
-  addUsuario: (data: Omit<Usuario, "id" | "creadoEn">) => Usuario;
-  updateUsuario: (id: string, data: Partial<Usuario>) => void;
-  deleteUsuario: (id: string) => void;
-
-  addPsicologo: (data: Omit<Psicologo, "id">) => Psicologo;
-  updatePsicologo: (id: string, data: Partial<Psicologo>) => void;
-  deletePsicologo: (id: string) => void;
-
-  addServicio: (data: Omit<Servicio, "id">) => Servicio;
-  updateServicio: (id: string, data: Partial<Servicio>) => void;
-  deleteServicio: (id: string) => void;
-
-  updateConfig: (data: Partial<ConsultorioConfig>) => void;
+  addEvolucion: (data: Omit<EvolucionSesion, "id" | "creadoEn">) => Promise<EvolucionSesion>;
+  updateEvolucion: (id: string, data: Partial<EvolucionSesion>) => Promise<void>;
+  deleteEvolucion: (id: string) => Promise<void>;
 
   setHydrated: () => void;
 }
 
-export const useDb = create<DbState>()(
-  persist(
-    (set) => ({
-      hydrated: false,
-      pacientes: PACIENTES,
-      psicologos: PSICOLOGOS,
-      servicios: SERVICIOS,
-      citas: seedCitas(),
-      atenciones: seedAtenciones(),
-      paquetes: PAQUETES,
-      paquetesPaciente: seedPaquetesPaciente(),
-      historias: seedHistorias(),
-      evoluciones: seedEvoluciones(),
-      evaluaciones: [],
-      usuarios: USUARIOS,
-      config: CONFIG_DEFAULT,
+// Timers de autoguardado de la historia clínica (debounce por paciente).
+const evalTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-      addPaciente: (data) => {
-        const paciente: Paciente = {
-          ...data,
-          id: newId("pac"),
-          creadoEn: new Date().toISOString(),
-        };
-        set((s) => ({ pacientes: [paciente, ...s.pacientes] }));
-        return paciente;
-      },
-      updatePaciente: (id, data) =>
-        set((s) => ({
-          pacientes: s.pacientes.map((p) => (p.id === id ? { ...p, ...data } : p)),
-        })),
-      deletePaciente: (id) =>
-        set((s) => ({ pacientes: s.pacientes.filter((p) => p.id !== id) })),
+async function fetchColl(key: CollKey): Promise<unknown> {
+  switch (key) {
+    case "pacientes": return (await api.get<unknown[]>("/pacientes")).map(M.mapPaciente);
+    case "psicologos": return (await api.get<unknown[]>("/psicologos")).map(M.mapPsicologo);
+    case "servicios": return (await api.get<unknown[]>("/servicios")).map(M.mapServicio);
+    case "paquetes": return (await api.get<unknown[]>("/paquetes")).map(M.mapPaquete);
+    case "paquetesPaciente": return (await api.get<unknown[]>("/paquetes-paciente")).map(M.mapPaquetePaciente);
+    case "citas": return (await api.get<unknown[]>("/citas")).map(M.mapCita);
+    case "atenciones": return (await api.get<unknown[]>("/atenciones")).map(M.mapAtencion);
+    case "evaluaciones": return (await api.get<unknown[]>("/evaluaciones")).map(M.mapEvaluacion);
+    case "evoluciones": return (await api.get<unknown[]>("/evoluciones")).map(M.mapEvolucion);
+    case "usuarios": return (await api.get<unknown[]>("/usuarios")).map(M.mapUsuario);
+    case "config": return M.mapConfig(await api.get("/config"));
+  }
+}
 
-      addCita: (data) => {
-        const cita: Cita = {
-          ...data,
-          id: newId("cit"),
-          creadoEn: new Date().toISOString(),
-        };
-        set((s) => ({ citas: [...s.citas, cita] }));
-        return cita;
-      },
-      updateCita: (id, data) =>
-        set((s) => ({
-          citas: s.citas.map((c) => (c.id === id ? { ...c, ...data } : c)),
-        })),
-      setEstadoCita: (id, estado) =>
-        set((s) => ({
-          citas: s.citas.map((c) => (c.id === id ? { ...c, estado } : c)),
-        })),
-      deleteCita: (id) =>
-        set((s) => ({ citas: s.citas.filter((c) => c.id !== id) })),
+export const useDb = create<DbState>()((set, get) => {
+  const upsertEval = (pacienteId: string, fn: (ev: EvaluacionNeuro) => EvaluacionNeuro) => {
+    set((s) => {
+      const existe = s.evaluaciones.find((e) => e.pacienteId === pacienteId);
+      const base: EvaluacionNeuro = existe ?? {
+        pacienteId, respuestas: {}, objetivos: [], actualizadoEn: new Date().toISOString(),
+      };
+      const next = fn(base);
+      return existe
+        ? { evaluaciones: s.evaluaciones.map((e) => (e.pacienteId === pacienteId ? next : e)) }
+        : { evaluaciones: [...s.evaluaciones, next] };
+    });
+    // Autoguardado debounced al backend.
+    const prev = evalTimers.get(pacienteId);
+    if (prev) clearTimeout(prev);
+    evalTimers.set(
+      pacienteId,
+      setTimeout(() => {
+        const ev = get().evaluaciones.find((e) => e.pacienteId === pacienteId);
+        if (!ev) return;
+        api
+          .put(`/evaluaciones/${pacienteId}`, {
+            respuestas: ev.respuestas,
+            objetivos: ev.objetivos,
+            obsConducta: ev.obsConducta,
+            obsFamilia: ev.obsFamilia,
+            obsEscolar: ev.obsEscolar,
+            informe: ev.informe,
+          })
+          .catch(() => {});
+      }, 700),
+    );
+  };
 
-      addAtencion: (data) => {
-        const atencion: Atencion = {
-          ...data,
-          id: newId("atn"),
-          creadoEn: new Date().toISOString(),
-        };
-        set((s) => ({ atenciones: [atencion, ...s.atenciones] }));
-        return atencion;
-      },
-      updateAtencion: (id, data) =>
-        set((s) => ({
-          atenciones: s.atenciones.map((a) => (a.id === id ? { ...a, ...data } : a)),
-        })),
-      agregarPago: (atencionId, pago) =>
-        set((s) => ({
-          atenciones: s.atenciones.map((a) =>
-            a.id === atencionId
-              ? { ...a, pagos: [...a.pagos, { ...pago, id: newId("pg") }] }
-              : a,
-          ),
-        })),
-      anularAtencion: (id, motivo) =>
-        set((s) => ({
-          atenciones: s.atenciones.map((a) =>
-            a.id === id ? { ...a, anulada: true, motivoAnulacion: motivo } : a,
-          ),
-        })),
+  return {
+    hydrated: false,
+    pacientes: [],
+    psicologos: [],
+    servicios: [],
+    paquetes: [],
+    paquetesPaciente: [],
+    citas: [],
+    atenciones: [],
+    evaluaciones: [],
+    evoluciones: [],
+    usuarios: [],
+    config: CONFIG_DEFAULT,
 
-      addPaquete: (data) => {
-        const paquete: Paquete = { ...data, id: newId("paq") };
-        set((s) => ({ paquetes: [...s.paquetes, paquete] }));
-        return paquete;
-      },
-      updatePaquete: (id, data) =>
-        set((s) => ({
-          paquetes: s.paquetes.map((p) => (p.id === id ? { ...p, ...data } : p)),
-        })),
-      deletePaquete: (id) =>
-        set((s) => ({ paquetes: s.paquetes.filter((p) => p.id !== id) })),
-      addPaquetePaciente: (data) => {
-        const pp: PaquetePaciente = {
-          ...data,
-          id: newId("pp"),
-          creadoEn: new Date().toISOString(),
-        };
-        set((s) => ({ paquetesPaciente: [pp, ...s.paquetesPaciente] }));
-        return pp;
-      },
-
-      upsertHistoria: (pacienteId, data) =>
-        set((s) => {
-          const now = new Date().toISOString();
-          const existe = s.historias.find((h) => h.pacienteId === pacienteId);
-          if (existe) {
-            return {
-              historias: s.historias.map((h) =>
-                h.pacienteId === pacienteId ? { ...h, ...data, actualizadoEn: now } : h,
-              ),
-            };
-          }
-          const nueva: HistoriaClinica = {
-            pacienteId,
-            fechaApertura: now.slice(0, 10),
-            actualizadoEn: now,
-            ...data,
-          };
-          return { historias: [...s.historias, nueva] };
-        }),
-      addEvolucion: (data) => {
-        const evolucion: EvolucionSesion = {
-          ...data,
-          id: newId("evo"),
-          creadoEn: new Date().toISOString(),
-        };
-        set((s) => ({ evoluciones: [evolucion, ...s.evoluciones] }));
-        return evolucion;
-      },
-      updateEvolucion: (id, data) =>
-        set((s) => ({
-          evoluciones: s.evoluciones.map((e) => (e.id === id ? { ...e, ...data } : e)),
-        })),
-      deleteEvolucion: (id) =>
-        set((s) => ({ evoluciones: s.evoluciones.filter((e) => e.id !== id) })),
-
-      setRespuesta: (pacienteId, fieldId, valor) =>
-        set((s) => ({
-          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
-            ...ev,
-            respuestas: { ...ev.respuestas, [fieldId]: valor },
-          })),
-        })),
-      setEvalCampo: (pacienteId, campo, valor) =>
-        set((s) => ({
-          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
-            ...ev,
-            [campo]: valor,
-          })),
-        })),
-      addObjetivo: (pacienteId, texto) =>
-        set((s) => ({
-          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
-            ...ev,
-            objetivos: [
-              ...ev.objetivos,
-              { id: newId("obj"), texto, estado: "En proceso inicial" },
-            ],
-          })),
-        })),
-      updateObjetivo: (pacienteId, objetivoId, data) =>
-        set((s) => ({
-          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
-            ...ev,
-            objetivos: ev.objetivos.map((o) => (o.id === objetivoId ? { ...o, ...data } : o)),
-          })),
-        })),
-      deleteObjetivo: (pacienteId, objetivoId) =>
-        set((s) => ({
-          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
-            ...ev,
-            objetivos: ev.objetivos.filter((o) => o.id !== objetivoId),
-          })),
-        })),
-
-      addUsuario: (data) => {
-        const usuario: Usuario = {
-          ...data,
-          id: newId("usr"),
-          creadoEn: new Date().toISOString(),
-        };
-        set((s) => ({ usuarios: [usuario, ...s.usuarios] }));
-        return usuario;
-      },
-      updateUsuario: (id, data) =>
-        set((s) => ({
-          usuarios: s.usuarios.map((u) => (u.id === id ? { ...u, ...data } : u)),
-        })),
-      deleteUsuario: (id) =>
-        set((s) => ({ usuarios: s.usuarios.filter((u) => u.id !== id) })),
-
-      addPsicologo: (data) => {
-        const psicologo: Psicologo = { ...data, id: newId("psi") };
-        set((s) => ({ psicologos: [...s.psicologos, psicologo] }));
-        return psicologo;
-      },
-      updatePsicologo: (id, data) =>
-        set((s) => ({
-          psicologos: s.psicologos.map((p) => (p.id === id ? { ...p, ...data } : p)),
-        })),
-      deletePsicologo: (id) =>
-        set((s) => ({ psicologos: s.psicologos.filter((p) => p.id !== id) })),
-
-      addServicio: (data) => {
-        const servicio: Servicio = { ...data, id: newId("srv") };
-        set((s) => ({ servicios: [...s.servicios, servicio] }));
-        return servicio;
-      },
-      updateServicio: (id, data) =>
-        set((s) => ({
-          servicios: s.servicios.map((x) => (x.id === id ? { ...x, ...data } : x)),
-        })),
-      deleteServicio: (id) =>
-        set((s) => ({ servicios: s.servicios.filter((x) => x.id !== id) })),
-
-      updateConfig: (data) => set((s) => ({ config: { ...s.config, ...data } })),
-
-      setHydrated: () => set({ hydrated: true }),
-    }),
-    {
-      name: "serycrecer-db",
-      // Los catálogos (psicólogos/servicios) se mantienen desde el seed;
-      // persistimos solo lo que el usuario puede modificar en la demo.
-      version: 2,
-      // Datos anteriores usaban el modelo simple de atención (monto/estadoPago).
-      // Al detectarlos, se re-siembran las atenciones al nuevo modelo (ítems+pagos)
-      // y se agregan los paquetes; el resto de datos se conserva.
-      migrate: (persisted) => {
-        const st = { ...(persisted as Partial<DbState>) };
-        const atns = st.atenciones;
-        if (!Array.isArray(atns) || atns.some((a) => !Array.isArray(a?.items))) {
-          st.atenciones = seedAtenciones();
-        }
-        if (!Array.isArray(st.paquetes)) st.paquetes = PAQUETES;
-        if (!Array.isArray(st.paquetesPaciente)) st.paquetesPaciente = seedPaquetesPaciente();
-        return st as DbState;
-      },
-      partialize: (s) => ({
-        pacientes: s.pacientes,
-        citas: s.citas,
-        atenciones: s.atenciones,
-        paquetes: s.paquetes,
-        paquetesPaciente: s.paquetesPaciente,
-        historias: s.historias,
-        evoluciones: s.evoluciones,
-        evaluaciones: s.evaluaciones,
-        usuarios: s.usuarios,
-        psicologos: s.psicologos,
-        servicios: s.servicios,
-        config: s.config,
-      }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated();
-      },
+    loadAll: async () => {
+      const keys: CollKey[] = [
+        "pacientes", "psicologos", "servicios", "paquetes", "paquetesPaciente",
+        "citas", "atenciones", "evaluaciones", "evoluciones", "usuarios", "config",
+      ];
+      // allSettled: un fallo transitorio en una colección no tumba el resto.
+      const results = await Promise.allSettled(keys.map((k) => fetchColl(k)));
+      const patch: Record<string, unknown> = {};
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") patch[keys[i]] = r.value;
+      });
+      set(patch as Partial<DbState>);
+      set({ hydrated: true });
     },
-  ),
-);
 
-// ---- Selectores / helpers (fuera de React) ----
+    refresh: async (keys) => {
+      const results = await Promise.all(keys.map((k) => fetchColl(k).then((v) => [k, v] as const)));
+      set(Object.fromEntries(results) as Partial<DbState>);
+    },
 
+    // ── Pacientes ──
+    addPaciente: async (data) => {
+      const p = M.mapPaciente(await api.post("/pacientes", data));
+      set((s) => ({ pacientes: [p, ...s.pacientes] }));
+      return p;
+    },
+    updatePaciente: async (id, data) => {
+      const p = M.mapPaciente(await api.patch(`/pacientes/${id}`, data));
+      set((s) => ({ pacientes: s.pacientes.map((x) => (x.id === id ? p : x)) }));
+    },
+    deletePaciente: async (id) => {
+      await api.del(`/pacientes/${id}`);
+      set((s) => ({ pacientes: s.pacientes.filter((x) => x.id !== id) }));
+    },
+
+    // ── Citas ──
+    addCita: async (data) => {
+      const c = M.mapCita(await api.post("/citas", {
+        pacienteId: toId(data.pacienteId), psicologoId: toId(data.psicologoId),
+        servicioId: toId(data.servicioId), fecha: data.fecha, hora: data.hora,
+        estado: data.estado, tardanza: data.tardanza,
+        paquetePacienteId: toId(data.paquetePacienteId), notas: data.notas,
+      }));
+      set((s) => ({ citas: [...s.citas, c] }));
+      return c;
+    },
+    updateCita: async (id, data) => {
+      const body: Record<string, unknown> = {};
+      if (data.pacienteId !== undefined) body.pacienteId = toId(data.pacienteId);
+      if (data.psicologoId !== undefined) body.psicologoId = toId(data.psicologoId);
+      if (data.servicioId !== undefined) body.servicioId = toId(data.servicioId);
+      if (data.fecha !== undefined) body.fecha = data.fecha;
+      if (data.hora !== undefined) body.hora = data.hora;
+      if (data.estado !== undefined) body.estado = data.estado;
+      if (data.tardanza !== undefined) body.tardanza = data.tardanza;
+      if ("paquetePacienteId" in data) body.paquetePacienteId = toId(data.paquetePacienteId);
+      if (data.notas !== undefined) body.notas = data.notas;
+      const c = M.mapCita(await api.patch(`/citas/${id}`, body));
+      set((s) => ({ citas: s.citas.map((x) => (x.id === id ? c : x)) }));
+    },
+    setEstadoCita: async (id, estado) => {
+      const c = M.mapCita(await api.patch(`/citas/${id}/estado`, { estado }));
+      set((s) => ({ citas: s.citas.map((x) => (x.id === id ? c : x)) }));
+    },
+    deleteCita: async (id) => {
+      await api.del(`/citas/${id}`);
+      set((s) => ({ citas: s.citas.filter((x) => x.id !== id) }));
+    },
+
+    // ── Atenciones ──
+    addAtencion: async (data) => {
+      const a = M.mapAtencion(await api.post("/atenciones", {
+        pacienteId: toId(data.pacienteId), psicologoId: toId(data.psicologoId),
+        citaId: toId(data.citaId), fecha: data.fecha, hora: data.hora,
+        observaciones: data.observaciones,
+        items: data.items.map((it) => ({
+          tipo: it.tipo, nombre: it.nombre, monto: it.monto,
+          servicioId: toId(it.servicioId), paqueteId: toId(it.paqueteId),
+        })),
+        pagos: data.pagos.map((p) => ({ monto: p.monto, metodo: p.metodo })),
+      }));
+      // El backend crea el paquete-paciente y marca la cita atendida.
+      await get().refresh(["atenciones", "paquetesPaciente", "citas"]);
+      return a;
+    },
+    updateAtencion: async (id, data) => {
+      await api.patch(`/atenciones/${id}`, { observaciones: data.observaciones, hora: data.hora });
+      await get().refresh(["atenciones"]);
+    },
+    agregarPago: async (atencionId, pago) => {
+      await api.post(`/atenciones/${atencionId}/pagos`, { monto: pago.monto, metodo: pago.metodo });
+      await get().refresh(["atenciones"]);
+    },
+    anularAtencion: async (id, motivo) => {
+      await api.post(`/atenciones/${id}/anular`, { motivo });
+      await get().refresh(["atenciones"]);
+    },
+
+    // ── Paquetes (catálogo) ──
+    addPaquete: async (data) => {
+      const p = M.mapPaquete(await api.post("/paquetes", { ...data, servicioId: toId(data.servicioId) }));
+      set((s) => ({ paquetes: [...s.paquetes, p] }));
+      return p;
+    },
+    updatePaquete: async (id, data) => {
+      const p = M.mapPaquete(await api.patch(`/paquetes/${id}`, { ...data, servicioId: data.servicioId !== undefined ? toId(data.servicioId) : undefined }));
+      set((s) => ({ paquetes: s.paquetes.map((x) => (x.id === id ? p : x)) }));
+    },
+    deletePaquete: async (id) => {
+      await api.del(`/paquetes/${id}`);
+      set((s) => ({ paquetes: s.paquetes.filter((x) => x.id !== id) }));
+    },
+
+    // ── Usuarios ──
+    addUsuario: async (data) => {
+      const u = M.mapUsuario(await api.post("/usuarios", {
+        nombre: data.nombre, email: data.email, roleId: data.roleId,
+        estado: data.estado, password: data.password ?? "demo123",
+      }));
+      set((s) => ({ usuarios: [u, ...s.usuarios] }));
+      return u;
+    },
+    updateUsuario: async (id, data) => {
+      const u = M.mapUsuario(await api.patch(`/usuarios/${id}`, data));
+      set((s) => ({ usuarios: s.usuarios.map((x) => (x.id === id ? u : x)) }));
+    },
+    deleteUsuario: async (id) => {
+      await api.del(`/usuarios/${id}`);
+      set((s) => ({ usuarios: s.usuarios.filter((x) => x.id !== id) }));
+    },
+
+    // ── Psicólogos ──
+    addPsicologo: async (data) => {
+      const p = M.mapPsicologo(await api.post("/psicologos", data));
+      set((s) => ({ psicologos: [...s.psicologos, p] }));
+      return p;
+    },
+    updatePsicologo: async (id, data) => {
+      const p = M.mapPsicologo(await api.patch(`/psicologos/${id}`, data));
+      set((s) => ({ psicologos: s.psicologos.map((x) => (x.id === id ? p : x)) }));
+    },
+    deletePsicologo: async (id) => {
+      await api.del(`/psicologos/${id}`);
+      set((s) => ({ psicologos: s.psicologos.filter((x) => x.id !== id) }));
+    },
+
+    // ── Servicios ──
+    addServicio: async (data) => {
+      const sv = M.mapServicio(await api.post("/servicios", data));
+      set((s) => ({ servicios: [...s.servicios, sv] }));
+      return sv;
+    },
+    updateServicio: async (id, data) => {
+      const sv = M.mapServicio(await api.patch(`/servicios/${id}`, data));
+      set((s) => ({ servicios: s.servicios.map((x) => (x.id === id ? sv : x)) }));
+    },
+    deleteServicio: async (id) => {
+      await api.del(`/servicios/${id}`);
+      set((s) => ({ servicios: s.servicios.filter((x) => x.id !== id) }));
+    },
+
+    // ── Config ──
+    updateConfig: async (data) => {
+      const c = M.mapConfig(await api.patch("/config", data));
+      set({ config: c });
+    },
+
+    // ── Historia clínica (evaluación con autoguardado) ──
+    setRespuesta: (pacienteId, fieldId, valor) =>
+      upsertEval(pacienteId, (ev) => ({ ...ev, respuestas: { ...ev.respuestas, [fieldId]: valor } })),
+    setEvalCampo: (pacienteId, campo, valor) =>
+      upsertEval(pacienteId, (ev) => ({ ...ev, [campo]: valor })),
+    addObjetivo: (pacienteId, texto) =>
+      upsertEval(pacienteId, (ev) => ({ ...ev, objetivos: [...ev.objetivos, { id: uid("obj"), texto, estado: "En proceso inicial" }] })),
+    updateObjetivo: (pacienteId, objetivoId, data) =>
+      upsertEval(pacienteId, (ev) => ({ ...ev, objetivos: ev.objetivos.map((o) => (o.id === objetivoId ? { ...o, ...data } : o)) })),
+    deleteObjetivo: (pacienteId, objetivoId) =>
+      upsertEval(pacienteId, (ev) => ({ ...ev, objetivos: ev.objetivos.filter((o) => o.id !== objetivoId) })),
+
+    // ── Evoluciones ──
+    addEvolucion: async (data) => {
+      const e = M.mapEvolucion(await api.post("/evoluciones", {
+        pacienteId: toId(data.pacienteId), psicologoId: toId(data.psicologoId),
+        atencionId: toId(data.atencionId), fecha: data.fecha, hora: data.hora,
+        motivo: data.motivo, observaciones: data.observaciones, acuerdos: data.acuerdos,
+      }));
+      set((s) => ({ evoluciones: [e, ...s.evoluciones] }));
+      return e;
+    },
+    updateEvolucion: async (id, data) => {
+      const e = M.mapEvolucion(await api.patch(`/evoluciones/${id}`, {
+        motivo: data.motivo, observaciones: data.observaciones, acuerdos: data.acuerdos,
+        fecha: data.fecha, hora: data.hora, psicologoId: toId(data.psicologoId),
+      }));
+      set((s) => ({ evoluciones: s.evoluciones.map((x) => (x.id === id ? e : x)) }));
+    },
+    deleteEvolucion: async (id) => {
+      await api.del(`/evoluciones/${id}`);
+      set((s) => ({ evoluciones: s.evoluciones.filter((x) => x.id !== id) }));
+    },
+
+    setHydrated: () => set({ hydrated: true }),
+  };
+});
+
+/** Nombre completo del paciente. */
 export function pacienteNombre(p?: Paciente): string {
   return p ? `${p.nombres} ${p.apellidos}`.trim() : "—";
 }

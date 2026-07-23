@@ -2,18 +2,14 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  DEMO_USERS,
-  demoUserByEmail,
-  demoUserForRole,
-  type RoleId,
-} from "./roles";
+import { api } from "@/lib/api/client";
+import { DEMO_USERS, demoUserForRole, type RoleId } from "./roles";
 
-/** Contraseña única para todos los usuarios demo (sistema simulado). */
+/** Contraseña de las cuentas demo del backend. */
 export const DEMO_PASSWORD = "demo123";
 
 export interface SessionUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   title?: string;
@@ -26,9 +22,15 @@ interface Session {
   roleId: RoleId;
 }
 
-/** Simula la latencia de red de un login real. */
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface LoginResponse {
+  access_token: string;
+  user: {
+    id: number;
+    nombre: string;
+    email: string;
+    title?: string;
+    roleId: number;
+  };
 }
 
 interface AuthState {
@@ -48,24 +50,15 @@ export const useAuth = create<AuthState>()(
       hydrated: false,
 
       loginWithCredentials: async (email, password) => {
-        await delay(650);
-        const user = demoUserByEmail(email);
-        if (!user || password !== DEMO_PASSWORD) {
-          throw new Error("Correo o contraseña incorrectos.");
-        }
-        set({
-          session: {
-            user: {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              title: user.title,
-              roleId: user.roleId,
-            },
-            token: `demo-token-${user.id}`,
-            roleId: user.roleId,
-          },
-        });
+        const res = await api.post<LoginResponse>("/auth/login", { email, password });
+        const user: SessionUser = {
+          id: String(res.user.id),
+          name: res.user.nombre,
+          email: res.user.email,
+          title: res.user.title,
+          roleId: res.user.roleId as RoleId,
+        };
+        set({ session: { user, token: res.access_token, roleId: user.roleId } });
       },
 
       loginAsRole: async (roleId) => {

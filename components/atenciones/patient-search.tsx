@@ -123,24 +123,28 @@ export function PatientSearch({
         </div>
         <Button
           className="w-full bg-brand-gradient text-white"
-          onClick={() => {
+          onClick={async () => {
             if (!form.nombres.trim() || !form.apellidos.trim() || form.numDoc.trim().length < 6) {
               toast.error("Completa nombres, apellidos y documento");
               return;
             }
-            const nuevo = addPaciente({
-              tipoDoc: form.tipoDoc,
-              numDoc: form.numDoc.trim(),
-              nombres: form.nombres.trim(),
-              apellidos: form.apellidos.trim(),
-              sexo: form.sexo as Paciente["sexo"],
-              fechaNacimiento: "2000-01-01",
-              telefono: form.telefono.trim(),
-              estado: "Activo",
-            });
-            toast.success("Paciente creado · registro retomado");
-            setCreating(false);
-            onSelect(nuevo);
+            try {
+              const nuevo = await addPaciente({
+                tipoDoc: form.tipoDoc,
+                numDoc: form.numDoc.trim(),
+                nombres: form.nombres.trim(),
+                apellidos: form.apellidos.trim(),
+                sexo: form.sexo as Paciente["sexo"],
+                fechaNacimiento: "2000-01-01",
+                telefono: form.telefono.trim(),
+                estado: "Activo",
+              });
+              toast.success("Paciente creado · registro retomado");
+              setCreating(false);
+              onSelect(nuevo);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "No se pudo crear el paciente");
+            }
           }}
         >
           <UserPlus className="h-4 w-4" />

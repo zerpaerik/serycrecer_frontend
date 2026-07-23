@@ -5,13 +5,12 @@ import { useDb } from "./store";
 import type {
   EvaluacionNeuro,
   EvolucionSesion,
-  HistoriaClinica,
   Paciente,
   Psicologo,
   Servicio,
 } from "./types";
 
-/** ¿El store ya rehidrató desde localStorage? Evita parpadeos/mismatch. */
+/** ¿El store ya cargó los datos desde la API? */
 export function useDbReady(): boolean {
   return useDb((s) => s.hydrated);
 }
@@ -26,10 +25,6 @@ export function usePsicologo(id?: string): Psicologo | undefined {
 
 export function useServicio(id?: string): Servicio | undefined {
   return useDb((s) => s.servicios.find((x) => x.id === id));
-}
-
-export function useHistoria(pacienteId?: string): HistoriaClinica | undefined {
-  return useDb((s) => s.historias.find((h) => h.pacienteId === pacienteId));
 }
 
 export function useEvaluacion(pacienteId?: string): EvaluacionNeuro | undefined {
