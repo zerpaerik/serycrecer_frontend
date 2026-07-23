@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useDb } from "./store";
 import type {
+  EvaluacionNeuro,
   EvolucionSesion,
   HistoriaClinica,
   Paciente,
@@ -29,6 +30,10 @@ export function useServicio(id?: string): Servicio | undefined {
 
 export function useHistoria(pacienteId?: string): HistoriaClinica | undefined {
   return useDb((s) => s.historias.find((h) => h.pacienteId === pacienteId));
+}
+
+export function useEvaluacion(pacienteId?: string): EvaluacionNeuro | undefined {
+  return useDb((s) => s.evaluaciones.find((e) => e.pacienteId === pacienteId));
 }
 
 export function useEvoluciones(pacienteId?: string): EvolucionSesion[] {

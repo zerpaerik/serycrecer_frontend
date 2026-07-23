@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoginArtwork } from "@/components/brand/login-artwork";
-import { LogoMark } from "@/components/brand/logo";
+import { LogoFull } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth, DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/auth/store";
 import { getRole } from "@/lib/auth/roles";
@@ -73,9 +73,8 @@ export default function LoginPage() {
         </div>
 
         <div className="w-full max-w-md">
-          <div className="mb-6 flex flex-col items-center text-center lg:hidden">
-            <LogoMark className="h-12 w-12" />
-            <p className="mt-2 font-heading text-lg font-extrabold">Ser y Crecer</p>
+          <div className="mb-6 flex justify-center">
+            <LogoFull className="max-w-[180px] lg:max-w-[150px]" />
           </div>
 
           <div className="mb-7 text-center">

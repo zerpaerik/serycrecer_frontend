@@ -29,7 +29,7 @@ function HistoriaClinicaInner() {
   const router = useRouter();
   const ready = useDbReady();
   const pacientes = useDb((s) => s.pacientes);
-  const historias = useDb((s) => s.historias);
+  const evaluaciones = useDb((s) => s.evaluaciones);
   const evoluciones = useDb((s) => s.evoluciones);
 
   const data: Row[] = React.useMemo(
@@ -40,18 +40,22 @@ function HistoriaClinicaInner() {
           .map((e) => e.fecha)
           .sort()
           .at(-1);
+        const evalPac = evaluaciones.find((e) => e.pacienteId === p.id);
+        const abierta =
+          !!evalPac &&
+          (Object.keys(evalPac.respuestas).length > 0 || evalPac.objetivos.length > 0);
         return {
           id: p.id,
           _nombre: `${p.nombres} ${p.apellidos}`,
           numDoc: p.numDoc,
           edad: calcAge(p.fechaNacimiento),
           sexo: p.sexo,
-          tieneHistoria: historias.some((h) => h.pacienteId === p.id),
+          tieneHistoria: abierta || evos.length > 0,
           nEvoluciones: evos.length,
           ultima,
         };
       }),
-    [pacientes, historias, evoluciones],
+    [pacientes, evaluaciones, evoluciones],
   );
 
   const columns: ColumnDef<Row, unknown>[] = React.useMemo(

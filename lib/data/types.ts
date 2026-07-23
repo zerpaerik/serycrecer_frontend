@@ -47,6 +47,33 @@ export interface Usuario {
   creadoEn: string;
 }
 
+// ─── Historia clínica neuropsicológica (instrumento por secciones) ───
+
+/** Respuesta Sí/No con observación (patrón de la anamnesis). */
+export interface RespuestaBool {
+  v: "si" | "no" | null;
+  obs?: string;
+}
+export type RespuestaValor = string | number | RespuestaBool;
+
+export interface ObjetivoTrabajo {
+  id: string;
+  texto: string;
+  estado: string; // "En proceso inicial" | "Muestra mejora" | "Logrado"
+}
+
+/** Historia clínica estructurada del paciente (por id de campo del instrumento). */
+export interface EvaluacionNeuro {
+  pacienteId: string;
+  respuestas: Record<string, RespuestaValor>;
+  objetivos: ObjetivoTrabajo[];
+  obsConducta?: string;
+  obsFamilia?: string;
+  obsEscolar?: string;
+  informe?: string;
+  actualizadoEn: string;
+}
+
 /** Configuración general del consultorio. */
 export interface ConsultorioConfig {
   nombre: string;

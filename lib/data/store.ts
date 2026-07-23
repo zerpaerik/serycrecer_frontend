@@ -18,11 +18,14 @@ import type {
   Cita,
   ConsultorioConfig,
   EstadoCita,
+  EvaluacionNeuro,
   EvolucionSesion,
   HistoriaClinica,
   MetodoPago,
+  ObjetivoTrabajo,
   Paciente,
   Psicologo,
+  RespuestaValor,
   Servicio,
   Usuario,
 } from "./types";
@@ -36,6 +39,22 @@ function newId(prefix: string): string {
   return `${prefix}-${rand}`;
 }
 
+/** Crea o actualiza la evaluación de un paciente aplicando `fn`. */
+function upsertEval(
+  lista: EvaluacionNeuro[],
+  pacienteId: string,
+  fn: (ev: EvaluacionNeuro) => EvaluacionNeuro,
+): EvaluacionNeuro[] {
+  const now = new Date().toISOString();
+  const existe = lista.find((e) => e.pacienteId === pacienteId);
+  const base: EvaluacionNeuro =
+    existe ?? { pacienteId, respuestas: {}, objetivos: [], actualizadoEn: now };
+  const actualizado = { ...fn(base), actualizadoEn: now };
+  return existe
+    ? lista.map((e) => (e.pacienteId === pacienteId ? actualizado : e))
+    : [...lista, actualizado];
+}
+
 interface DbState {
   hydrated: boolean;
   pacientes: Paciente[];
@@ -45,6 +64,7 @@ interface DbState {
   atenciones: Atencion[];
   historias: HistoriaClinica[];
   evoluciones: EvolucionSesion[];
+  evaluaciones: EvaluacionNeuro[];
   usuarios: Usuario[];
   config: ConsultorioConfig;
 
@@ -73,6 +93,17 @@ interface DbState {
   addEvolucion: (data: Omit<EvolucionSesion, "id" | "creadoEn">) => EvolucionSesion;
   updateEvolucion: (id: string, data: Partial<EvolucionSesion>) => void;
   deleteEvolucion: (id: string) => void;
+
+  // Evaluación neuropsicológica (historia estructurada)
+  setRespuesta: (pacienteId: string, fieldId: string, valor: RespuestaValor) => void;
+  setEvalCampo: (
+    pacienteId: string,
+    campo: "obsConducta" | "obsFamilia" | "obsEscolar" | "informe",
+    valor: string,
+  ) => void;
+  addObjetivo: (pacienteId: string, texto: string) => void;
+  updateObjetivo: (pacienteId: string, objetivoId: string, data: Partial<ObjetivoTrabajo>) => void;
+  deleteObjetivo: (pacienteId: string, objetivoId: string) => void;
 
   // Administración
   addUsuario: (data: Omit<Usuario, "id" | "creadoEn">) => Usuario;
@@ -103,6 +134,7 @@ export const useDb = create<DbState>()(
       atenciones: seedAtenciones(),
       historias: seedHistorias(),
       evoluciones: seedEvoluciones(),
+      evaluaciones: [],
       usuarios: USUARIOS,
       config: CONFIG_DEFAULT,
 
@@ -197,6 +229,45 @@ export const useDb = create<DbState>()(
       deleteEvolucion: (id) =>
         set((s) => ({ evoluciones: s.evoluciones.filter((e) => e.id !== id) })),
 
+      setRespuesta: (pacienteId, fieldId, valor) =>
+        set((s) => ({
+          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
+            ...ev,
+            respuestas: { ...ev.respuestas, [fieldId]: valor },
+          })),
+        })),
+      setEvalCampo: (pacienteId, campo, valor) =>
+        set((s) => ({
+          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
+            ...ev,
+            [campo]: valor,
+          })),
+        })),
+      addObjetivo: (pacienteId, texto) =>
+        set((s) => ({
+          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
+            ...ev,
+            objetivos: [
+              ...ev.objetivos,
+              { id: newId("obj"), texto, estado: "En proceso inicial" },
+            ],
+          })),
+        })),
+      updateObjetivo: (pacienteId, objetivoId, data) =>
+        set((s) => ({
+          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
+            ...ev,
+            objetivos: ev.objetivos.map((o) => (o.id === objetivoId ? { ...o, ...data } : o)),
+          })),
+        })),
+      deleteObjetivo: (pacienteId, objetivoId) =>
+        set((s) => ({
+          evaluaciones: upsertEval(s.evaluaciones, pacienteId, (ev) => ({
+            ...ev,
+            objetivos: ev.objetivos.filter((o) => o.id !== objetivoId),
+          })),
+        })),
+
       addUsuario: (data) => {
         const usuario: Usuario = {
           ...data,
@@ -251,6 +322,7 @@ export const useDb = create<DbState>()(
         atenciones: s.atenciones,
         historias: s.historias,
         evoluciones: s.evoluciones,
+        evaluaciones: s.evaluaciones,
         usuarios: s.usuarios,
         psicologos: s.psicologos,
         servicios: s.servicios,

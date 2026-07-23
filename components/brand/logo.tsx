@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /** Figura blanca (persona con brazos en alto), estilo del logo. */
@@ -58,6 +61,38 @@ export function LogoMark({ className }: { className?: string }) {
       <Persona x={38} foot={46} h={29} />
       <Persona x={46} foot={45} h={18} />
     </svg>
+  );
+}
+
+/**
+ * Logo completo para el login: usa el PNG real (`/brand/logo.png`) si existe;
+ * si no, cae en el emblema SVG + nombre. Así, al colocar el archivo aparece solo.
+ */
+export function LogoFull({ className }: { className?: string }) {
+  const [error, setError] = React.useState(false);
+
+  if (!error) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/brand/logo.png"
+        alt="Centro neuropsicológico Ser y Crecer"
+        className={cn("h-auto w-full object-contain", className)}
+        onError={() => setError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-col items-center text-center", className)}>
+      <LogoMark className="h-20 w-20" />
+      <p className="mt-3 font-heading text-xl font-extrabold tracking-tight text-brand">
+        Ser y Crecer
+      </p>
+      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        Centro neuropsicológico
+      </p>
+    </div>
   );
 }
 
