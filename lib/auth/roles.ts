@@ -25,22 +25,22 @@ export const ROLES: Role[] = [
     id: 1,
     name: "Administrador",
     short: "Admin",
-    description: "Administración total del consultorio",
-    color: "#0d9488",
+    description: "Administración total del centro",
+    color: "#14a89c",
   },
   {
     id: 2,
     name: "Psicólogo",
     short: "Psicólogo",
     description: "Atención clínica y sus pacientes",
-    color: "#8b5cf6",
+    color: "#2b83c2",
   },
   {
     id: 3,
     name: "Recepción",
     short: "Recepción",
     description: "Agenda, citas, cobros y asistencia",
-    color: "#0ea5e9",
+    color: "#e8774a",
   },
 ];
 

@@ -22,7 +22,7 @@ export function LoginArtwork() {
         <div className="leading-none">
           <p className="font-heading text-lg font-extrabold">Ser y Crecer</p>
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-white/80">
-            Consultorio Psicológico
+            Centro neuropsicológico
           </p>
         </div>
       </div>

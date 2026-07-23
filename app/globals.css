@@ -60,11 +60,12 @@
 :root {
   --radius: 0.85rem;
 
-  /* Marca — teal sereno (crecimiento/calma) + azul sereno + lavanda */
-  --brand: #0d9488;
+  /* Marca "Ser y Crecer" — tomada del logo: teal (aro/wordmark), azul,
+     verde y coral (pinceladas) y dorado (aro interno). */
+  --brand: #14a89c;
   --brand-foreground: #ffffff;
-  --brand-blue: #0ea5e9;
-  --brand-alt: #8b5cf6;
+  --brand-blue: #2b83c2;
+  --brand-alt: #f4b21f;
 
   --background: oklch(0.99 0.004 220);
   --foreground: oklch(0.24 0.025 240);
@@ -73,13 +74,13 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.24 0.025 240);
 
-  --primary: #0d9488;
+  --primary: #14a89c;
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.97 0.006 220);
   --secondary-foreground: oklch(0.3 0.025 240);
   --muted: oklch(0.97 0.006 220);
   --muted-foreground: oklch(0.55 0.02 235);
-  --accent: oklch(0.96 0.03 185);
+  --accent: oklch(0.95 0.035 185);
   --accent-foreground: oklch(0.42 0.09 190);
 
   --destructive: oklch(0.62 0.21 22);
@@ -89,29 +90,29 @@
 
   --border: oklch(0.92 0.006 230);
   --input: oklch(0.92 0.006 230);
-  --ring: #0d9488;
+  --ring: #14a89c;
 
-  --chart-1: #0d9488;
-  --chart-2: #0ea5e9;
-  --chart-3: #8b5cf6;
-  --chart-4: #f59e0b;
-  --chart-5: #f43f5e;
+  --chart-1: #14a89c;
+  --chart-2: #2b83c2;
+  --chart-3: #4fa64a;
+  --chart-4: #f4b21f;
+  --chart-5: #e8774a;
 
   --sidebar: oklch(0.988 0.005 210);
   --sidebar-foreground: oklch(0.38 0.02 235);
-  --sidebar-primary: #0d9488;
+  --sidebar-primary: #14a89c;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: oklch(0.955 0.03 185);
   --sidebar-accent-foreground: oklch(0.42 0.09 190);
   --sidebar-border: oklch(0.92 0.006 230);
-  --sidebar-ring: #0d9488;
+  --sidebar-ring: #14a89c;
 }
 
 .dark {
-  --brand: #2dd4bf;
+  --brand: #2fd0c0;
   --brand-foreground: #06231f;
-  --brand-blue: #38bdf8;
-  --brand-alt: #a78bfa;
+  --brand-blue: #4aa8e6;
+  --brand-alt: #f7c144;
 
   --background: oklch(0.19 0.018 240);
   --foreground: oklch(0.96 0.005 210);
@@ -120,7 +121,7 @@
   --popover: oklch(0.23 0.02 240);
   --popover-foreground: oklch(0.96 0.005 210);
 
-  --primary: #2dd4bf;
+  --primary: #2fd0c0;
   --primary-foreground: oklch(0.2 0.03 200);
   --secondary: oklch(0.28 0.02 240);
   --secondary-foreground: oklch(0.96 0.005 210);
@@ -136,22 +137,22 @@
 
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 14%);
-  --ring: #2dd4bf;
+  --ring: #2fd0c0;
 
-  --chart-1: #2dd4bf;
-  --chart-2: #38bdf8;
-  --chart-3: #a78bfa;
-  --chart-4: #fbbf24;
-  --chart-5: #fb7185;
+  --chart-1: #2fd0c0;
+  --chart-2: #4aa8e6;
+  --chart-3: #63c257;
+  --chart-4: #f7c144;
+  --chart-5: #f0895e;
 
   --sidebar: oklch(0.22 0.02 240);
   --sidebar-foreground: oklch(0.86 0.01 210);
-  --sidebar-primary: #2dd4bf;
+  --sidebar-primary: #2fd0c0;
   --sidebar-primary-foreground: #06231f;
   --sidebar-accent: oklch(0.32 0.05 195);
   --sidebar-accent-foreground: oklch(0.94 0.04 185);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: #2dd4bf;
+  --sidebar-ring: #2fd0c0;
 }
 
 @layer base {

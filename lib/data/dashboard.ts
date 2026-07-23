@@ -43,11 +43,11 @@ export interface DashboardData {
   citas: CitaProxima[];
 }
 
-const TEAL = "#0d9488";
-const SKY = "#0ea5e9";
-const VIOLET = "#8b5cf6";
-const AMBER = "#f59e0b";
-const ROSE = "#f43f5e";
+const TEAL = "#14a89c";
+const SKY = "#2b83c2";
+const VIOLET = "#4fa64a";
+const AMBER = "#f4b21f";
+const ROSE = "#e8774a";
 
 const semana: SeriePunto[] = [
   { label: "Lun", value: 8 },

@@ -20,11 +20,11 @@ const jakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Ser y Crecer · Consultorio Psicológico",
+    default: "Ser y Crecer · Centro Neuropsicológico",
     template: "%s · Ser y Crecer",
   },
   description:
-    "Sistema de gestión para consultorio psicológico Ser y Crecer. Citas, atenciones, historia clínica, pagos y asistencia.",
+    "Sistema de gestión del Centro Neuropsicológico Ser y Crecer. Citas, atenciones, historia clínica, pagos y asistencia.",
   icons: { icon: "/favicon.ico" },
 };
 
