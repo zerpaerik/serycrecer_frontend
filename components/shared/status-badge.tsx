@@ -11,6 +11,7 @@ const CITA_STYLES: Record<EstadoCita, string> = {
 
 const PAGO_STYLES: Record<EstadoPago, string> = {
   Pagado: "bg-success/12 text-success",
+  Parcial: "bg-info/12 text-info",
   Pendiente: "bg-warning/15 text-warning",
 };
 

@@ -110,11 +110,12 @@ export interface Cita {
   estado: EstadoCita;
   /** El paciente asistió con retraso. */
   tardanza?: boolean;
+  /** Si la sesión se descuenta de un paquete del paciente. */
+  paquetePacienteId?: string;
   notas?: string;
   creadoEn: string;
 }
 
-export type EstadoPago = "Pagado" | "Pendiente";
 export type MetodoPago =
   | "Efectivo"
   | "Yape"
@@ -130,18 +131,67 @@ export const METODOS_PAGO: MetodoPago[] = [
   "Transferencia",
 ];
 
+/** Estado de pago derivado de una atención. */
+export type EstadoPago = "Pagado" | "Parcial" | "Pendiente";
+
+export type TipoItem = "Servicio" | "Paquete";
+
+/** Línea de la atención (servicio o paquete). */
+export interface AtnItem {
+  id: string;
+  tipo: TipoItem;
+  nombre: string;
+  monto: number;
+  servicioId?: string;
+  paqueteId?: string;
+}
+
+/** Pago (abono inicial o cobro posterior) sobre una atención. */
+export interface Pago {
+  id: string;
+  monto: number;
+  metodo: MetodoPago;
+  tipo: "Abono inicial" | "Cobro";
+  fecha: string; // ISO "YYYY-MM-DD"
+}
+
 export interface Atencion {
   id: string;
   citaId?: string;
   pacienteId: string;
   psicologoId: string;
-  servicioId: string;
   fecha: string; // ISO "YYYY-MM-DD"
-  hora: string; // "HH:mm"
-  notas?: string;
-  monto: number;
-  estadoPago: EstadoPago;
-  metodoPago?: MetodoPago;
+  hora?: string; // "HH:mm"
+  items: AtnItem[];
+  pagos: Pago[];
+  observaciones?: string;
+  anulada?: boolean;
+  motivoAnulacion?: string;
+  creadoEn: string;
+}
+
+// ─── Paquetes de sesiones ───
+
+/** Catálogo de paquetes de sesiones. */
+export interface Paquete {
+  id: string;
+  nombre: string;
+  sesiones: number;
+  precio: number;
+  servicioId?: string;
+  color: string;
+}
+
+/** Paquete adquirido por un paciente (bolsa de sesiones). */
+export interface PaquetePaciente {
+  id: string;
+  pacienteId: string;
+  paqueteId: string;
+  nombre: string;
+  totalSesiones: number;
+  precio: number;
+  fecha: string; // ISO "YYYY-MM-DD"
+  atencionId?: string;
   creadoEn: string;
 }
 

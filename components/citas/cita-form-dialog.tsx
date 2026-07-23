@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDb, pacienteNombre } from "@/lib/data/store";
+import { sesionesRestantes } from "@/lib/data/atenciones";
 import { formatPEN } from "@/lib/format";
 import type { Cita } from "@/lib/data/types";
 
@@ -35,6 +36,7 @@ const schema = z.object({
   servicioId: z.string().min(1, "Selecciona un servicio"),
   fecha: z.string().min(1, "Requerido"),
   hora: z.string().min(1, "Requerido"),
+  paquetePacienteId: z.string(),
   notas: z.string(),
 });
 type Values = z.infer<typeof schema>;
@@ -74,6 +76,8 @@ export function CitaFormDialog({
   const pacientes = useDb((s) => s.pacientes);
   const psicologos = useDb((s) => s.psicologos);
   const servicios = useDb((s) => s.servicios);
+  const paquetesPaciente = useDb((s) => s.paquetesPaciente);
+  const citas = useDb((s) => s.citas);
   const addCita = useDb((s) => s.addCita);
   const updateCita = useDb((s) => s.updateCita);
   const isEdit = !!cita;
@@ -85,6 +89,7 @@ export function CitaFormDialog({
       servicioId: cita?.servicioId ?? "",
       fecha: cita?.fecha ?? fechaInicial ?? new Date().toISOString().slice(0, 10),
       hora: cita?.hora ?? "09:00",
+      paquetePacienteId: cita?.paquetePacienteId ?? "none",
       notas: cita?.notas ?? "",
     }),
     [cita, fechaInicial],
@@ -95,6 +100,7 @@ export function CitaFormDialog({
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: defaults() });
 
@@ -102,12 +108,33 @@ export function CitaFormDialog({
     if (open) reset(defaults());
   }, [open, defaults, reset]);
 
+  const pacienteSel = watch("pacienteId");
+  // Paquetes del paciente con sesiones disponibles (incluye el ya asignado a esta cita).
+  const paquetesDisponibles = React.useMemo(
+    () =>
+      paquetesPaciente.filter(
+        (pp) =>
+          pp.pacienteId === pacienteSel &&
+          (sesionesRestantes(pp, citas) > 0 || pp.id === cita?.paquetePacienteId),
+      ),
+    [paquetesPaciente, citas, pacienteSel, cita?.paquetePacienteId],
+  );
+
   function onSubmit(v: Values) {
+    const payload = {
+      pacienteId: v.pacienteId,
+      psicologoId: v.psicologoId,
+      servicioId: v.servicioId,
+      fecha: v.fecha,
+      hora: v.hora,
+      notas: v.notas,
+      paquetePacienteId: v.paquetePacienteId === "none" ? undefined : v.paquetePacienteId,
+    };
     if (isEdit && cita) {
-      updateCita(cita.id, v);
+      updateCita(cita.id, payload);
       toast.success("Cita actualizada");
     } else {
-      addCita({ ...v, estado: "Agendada" });
+      addCita({ ...payload, estado: "Agendada" });
       toast.success("Cita agendada");
     }
     onOpenChange(false);
@@ -188,6 +215,30 @@ export function CitaFormDialog({
               )}
             />
           </Field>
+
+          {paquetesDisponibles.length > 0 && (
+            <Field label="Descontar de paquete (opcional)">
+              <Controller
+                control={control}
+                name="paquetePacienteId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No usar paquete (cobro aparte)</SelectItem>
+                      {paquetesDisponibles.map((pp) => (
+                        <SelectItem key={pp.id} value={pp.id}>
+                          {pp.nombre} · {sesionesRestantes(pp, citas)} de {pp.totalSesiones} disponibles
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Fecha" error={errors.fecha?.message}>

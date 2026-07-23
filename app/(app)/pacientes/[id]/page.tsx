@@ -8,6 +8,7 @@ import {
   CalendarDays,
   Mail,
   MapPin,
+  Package,
   Pencil,
   Phone,
   ShieldAlert,
@@ -53,6 +54,12 @@ export default function PacienteDetallePage() {
   const citas = useDb((s) => s.citas);
   const psicologos = useDb((s) => s.psicologos);
   const servicios = useDb((s) => s.servicios);
+  const paquetesPaciente = useDb((s) => s.paquetesPaciente);
+
+  const misPaquetes = React.useMemo(
+    () => paquetesPaciente.filter((pp) => pp.pacienteId === params.id),
+    [paquetesPaciente, params.id],
+  );
 
   const [editOpen, setEditOpen] = React.useState(false);
 
@@ -144,6 +151,39 @@ export default function PacienteDetallePage() {
               </p>
             </CardContent>
           </Card>
+
+          {misPaquetes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Package className="h-4 w-4 text-brand" />
+                  Paquetes de sesiones
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {misPaquetes.map((pp) => {
+                  const usadas = citas.filter((c) => c.paquetePacienteId === pp.id && c.estado !== "Cancelada").length;
+                  const restantes = Math.max(0, pp.totalSesiones - usadas);
+                  const pct = (usadas / Math.max(1, pp.totalSesiones)) * 100;
+                  return (
+                    <div key={pp.id} className="rounded-lg border p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{pp.nombre}</span>
+                        <span className="shrink-0 tabular-nums">
+                          <span className="font-semibold text-brand">{restantes}</span>
+                          <span className="text-muted-foreground"> / {pp.totalSesiones}</span>
+                        </span>
+                      </div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{usadas} sesiones usadas · {restantes} disponibles</p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

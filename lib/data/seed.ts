@@ -9,6 +9,8 @@ import type {
   EvolucionSesion,
   HistoriaClinica,
   Paciente,
+  Paquete,
+  PaquetePaciente,
   Psicologo,
   Servicio,
   Usuario,
@@ -87,7 +89,7 @@ export function seedCitas(): Cita[] {
 
   return [
     // Hoy
-    mk("cit-1", "pac-1", "psi-1", "srv-1", isoDate(0), "09:00", "Confirmada"),
+    { ...mk("cit-1", "pac-1", "psi-1", "srv-1", isoDate(0), "09:00", "Confirmada"), paquetePacienteId: "pp-1" },
     mk("cit-2", "pac-2", "psi-1", "srv-2", isoDate(0), "10:30", "Confirmada"),
     mk("cit-3", "pac-3", "psi-2", "srv-3", isoDate(0), "12:00", "Agendada"),
     mk("cit-4", "pac-5", "psi-1", "srv-1", isoDate(0), "16:00", "Agendada"),
@@ -108,9 +110,42 @@ export function seedCitas(): Cita[] {
 export function seedAtenciones(): Atencion[] {
   const now = new Date().toISOString();
   return [
-    { id: "atn-1", citaId: "cit-9", pacienteId: "pac-1", psicologoId: "psi-1", servicioId: "srv-1", fecha: isoDate(-7), hora: "09:00", notas: "Sesión de seguimiento. Buena evolución.", monto: 80, estadoPago: "Pagado", metodoPago: "Yape", creadoEn: now },
-    { id: "atn-2", citaId: "cit-10", pacienteId: "pac-2", psicologoId: "psi-1", servicioId: "srv-1", fecha: isoDate(-5), hora: "10:30", notas: "Trabajo en manejo de duelo.", monto: 80, estadoPago: "Pagado", metodoPago: "Efectivo", creadoEn: now },
-    { id: "atn-3", citaId: "cit-12", pacienteId: "pac-10", psicologoId: "psi-2", servicioId: "srv-5", fecha: isoDate(-2), hora: "12:00", notas: "Primera sesión familiar.", monto: 160, estadoPago: "Pendiente", creadoEn: now },
+    {
+      id: "atn-1", citaId: "cit-9", pacienteId: "pac-1", psicologoId: "psi-1",
+      fecha: isoDate(-7), hora: "09:00", observaciones: "Sesión de seguimiento. Buena evolución.",
+      items: [{ id: "it-1", tipo: "Servicio", nombre: "Terapia individual", monto: 80, servicioId: "srv-1" }],
+      pagos: [{ id: "pg-1", monto: 80, metodo: "Yape", tipo: "Abono inicial", fecha: isoDate(-7) }],
+      creadoEn: now,
+    },
+    {
+      id: "atn-2", citaId: "cit-10", pacienteId: "pac-2", psicologoId: "psi-1",
+      fecha: isoDate(-5), hora: "10:30", observaciones: "Trabajo en manejo de duelo.",
+      items: [{ id: "it-2", tipo: "Servicio", nombre: "Terapia individual", monto: 80, servicioId: "srv-1" }],
+      pagos: [{ id: "pg-2", monto: 80, metodo: "Efectivo", tipo: "Abono inicial", fecha: isoDate(-5) }],
+      creadoEn: now,
+    },
+    {
+      id: "atn-3", citaId: "cit-12", pacienteId: "pac-10", psicologoId: "psi-2",
+      fecha: isoDate(-2), hora: "12:00", observaciones: "Primera sesión familiar.",
+      items: [{ id: "it-3", tipo: "Servicio", nombre: "Terapia familiar", monto: 160, servicioId: "srv-5" }],
+      // Abono parcial: pagó S/80, queda S/80 por cobrar (demo de saldo/parcial).
+      pagos: [{ id: "pg-3", monto: 80, metodo: "Efectivo", tipo: "Abono inicial", fecha: isoDate(-2) }],
+      creadoEn: now,
+    },
+  ];
+}
+
+export const PAQUETES: Paquete[] = [
+  { id: "paq-1", nombre: "Paquete 4 sesiones · Terapia individual", sesiones: 4, precio: 280, servicioId: "srv-1", color: TEAL },
+  { id: "paq-2", nombre: "Paquete 8 sesiones · Terapia individual", sesiones: 8, precio: 520, servicioId: "srv-1", color: SKY },
+  { id: "paq-3", nombre: "Paquete 4 sesiones · Terapia infantil", sesiones: 4, precio: 300, servicioId: "srv-4", color: "#4fa64a" },
+];
+
+/** Paquetes ya adquiridos por pacientes (bolsa de sesiones). */
+export function seedPaquetesPaciente(): PaquetePaciente[] {
+  const now = new Date().toISOString();
+  return [
+    { id: "pp-1", pacienteId: "pac-1", paqueteId: "paq-1", nombre: "Paquete 4 sesiones · Terapia individual", totalSesiones: 4, precio: 280, fecha: isoDate(-10), atencionId: undefined, creadoEn: now },
   ];
 }
 

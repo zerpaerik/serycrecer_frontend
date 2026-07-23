@@ -5,6 +5,7 @@ import { persist } from "zustand/middleware";
 import {
   CONFIG_DEFAULT,
   PACIENTES,
+  PAQUETES,
   PSICOLOGOS,
   SERVICIOS,
   USUARIOS,
@@ -12,6 +13,7 @@ import {
   seedCitas,
   seedEvoluciones,
   seedHistorias,
+  seedPaquetesPaciente,
 } from "./seed";
 import type {
   Atencion,
@@ -21,9 +23,11 @@ import type {
   EvaluacionNeuro,
   EvolucionSesion,
   HistoriaClinica,
-  MetodoPago,
   ObjetivoTrabajo,
   Paciente,
+  Pago,
+  Paquete,
+  PaquetePaciente,
   Psicologo,
   RespuestaValor,
   Servicio,
@@ -62,6 +66,8 @@ interface DbState {
   servicios: Servicio[];
   citas: Cita[];
   atenciones: Atencion[];
+  paquetes: Paquete[];
+  paquetesPaciente: PaquetePaciente[];
   historias: HistoriaClinica[];
   evoluciones: EvolucionSesion[];
   evaluaciones: EvaluacionNeuro[];
@@ -82,8 +88,16 @@ interface DbState {
   // Atenciones
   addAtencion: (data: Omit<Atencion, "id" | "creadoEn">) => Atencion;
   updateAtencion: (id: string, data: Partial<Atencion>) => void;
-  /** Registra el cobro de una atención (método local) y la marca pagada. */
-  registrarCobro: (id: string, metodo: MetodoPago) => void;
+  /** Agrega un pago (abono) a una atención. */
+  agregarPago: (atencionId: string, pago: Omit<Pago, "id">) => void;
+  /** Anula una atención (soft-delete con motivo). */
+  anularAtencion: (id: string, motivo: string) => void;
+
+  // Paquetes
+  addPaquete: (data: Omit<Paquete, "id">) => Paquete;
+  updatePaquete: (id: string, data: Partial<Paquete>) => void;
+  deletePaquete: (id: string) => void;
+  addPaquetePaciente: (data: Omit<PaquetePaciente, "id" | "creadoEn">) => PaquetePaciente;
 
   // Historia clínica
   upsertHistoria: (
@@ -132,6 +146,8 @@ export const useDb = create<DbState>()(
       servicios: SERVICIOS,
       citas: seedCitas(),
       atenciones: seedAtenciones(),
+      paquetes: PAQUETES,
+      paquetesPaciente: seedPaquetesPaciente(),
       historias: seedHistorias(),
       evoluciones: seedEvoluciones(),
       evaluaciones: [],
@@ -187,12 +203,41 @@ export const useDb = create<DbState>()(
         set((s) => ({
           atenciones: s.atenciones.map((a) => (a.id === id ? { ...a, ...data } : a)),
         })),
-      registrarCobro: (id, metodo) =>
+      agregarPago: (atencionId, pago) =>
         set((s) => ({
           atenciones: s.atenciones.map((a) =>
-            a.id === id ? { ...a, estadoPago: "Pagado", metodoPago: metodo } : a,
+            a.id === atencionId
+              ? { ...a, pagos: [...a.pagos, { ...pago, id: newId("pg") }] }
+              : a,
           ),
         })),
+      anularAtencion: (id, motivo) =>
+        set((s) => ({
+          atenciones: s.atenciones.map((a) =>
+            a.id === id ? { ...a, anulada: true, motivoAnulacion: motivo } : a,
+          ),
+        })),
+
+      addPaquete: (data) => {
+        const paquete: Paquete = { ...data, id: newId("paq") };
+        set((s) => ({ paquetes: [...s.paquetes, paquete] }));
+        return paquete;
+      },
+      updatePaquete: (id, data) =>
+        set((s) => ({
+          paquetes: s.paquetes.map((p) => (p.id === id ? { ...p, ...data } : p)),
+        })),
+      deletePaquete: (id) =>
+        set((s) => ({ paquetes: s.paquetes.filter((p) => p.id !== id) })),
+      addPaquetePaciente: (data) => {
+        const pp: PaquetePaciente = {
+          ...data,
+          id: newId("pp"),
+          creadoEn: new Date().toISOString(),
+        };
+        set((s) => ({ paquetesPaciente: [pp, ...s.paquetesPaciente] }));
+        return pp;
+      },
 
       upsertHistoria: (pacienteId, data) =>
         set((s) => {
@@ -316,10 +361,26 @@ export const useDb = create<DbState>()(
       name: "serycrecer-db",
       // Los catálogos (psicólogos/servicios) se mantienen desde el seed;
       // persistimos solo lo que el usuario puede modificar en la demo.
+      version: 2,
+      // Datos anteriores usaban el modelo simple de atención (monto/estadoPago).
+      // Al detectarlos, se re-siembran las atenciones al nuevo modelo (ítems+pagos)
+      // y se agregan los paquetes; el resto de datos se conserva.
+      migrate: (persisted) => {
+        const st = { ...(persisted as Partial<DbState>) };
+        const atns = st.atenciones;
+        if (!Array.isArray(atns) || atns.some((a) => !Array.isArray(a?.items))) {
+          st.atenciones = seedAtenciones();
+        }
+        if (!Array.isArray(st.paquetes)) st.paquetes = PAQUETES;
+        if (!Array.isArray(st.paquetesPaciente)) st.paquetesPaciente = seedPaquetesPaciente();
+        return st as DbState;
+      },
       partialize: (s) => ({
         pacientes: s.pacientes,
         citas: s.citas,
         atenciones: s.atenciones,
+        paquetes: s.paquetes,
+        paquetesPaciente: s.paquetesPaciente,
         historias: s.historias,
         evoluciones: s.evoluciones,
         evaluaciones: s.evaluaciones,

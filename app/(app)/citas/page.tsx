@@ -22,7 +22,6 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { EstadoCitaBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { CitaFormDialog } from "@/components/citas/cita-form-dialog";
-import { AtencionFormDialog } from "@/components/atenciones/atencion-form-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -71,7 +70,6 @@ export default function CitasPage() {
   const [fecha, setFecha] = React.useState(hoyIso());
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Cita | undefined>();
-  const [atencionCita, setAtencionCita] = React.useState<Cita | undefined>();
   const [toDelete, setToDelete] = React.useState<Cita | undefined>();
 
   const delDia = React.useMemo(
@@ -212,7 +210,7 @@ export default function CitasPage() {
                         </DropdownMenuItem>
                       )}
                       {!cerrada && (
-                        <DropdownMenuItem onClick={() => setAtencionCita(c)}>
+                        <DropdownMenuItem onClick={() => router.push(`/atenciones/nueva?citaId=${c.id}`)}>
                           <ClipboardPlus className="h-4 w-4" />
                           Registrar atención
                         </DropdownMenuItem>
@@ -257,12 +255,6 @@ export default function CitasPage() {
         onOpenChange={setFormOpen}
         cita={editing}
         fechaInicial={fecha}
-      />
-
-      <AtencionFormDialog
-        open={!!atencionCita}
-        onOpenChange={(o) => !o && setAtencionCita(undefined)}
-        cita={atencionCita}
       />
 
       <ConfirmDialog
