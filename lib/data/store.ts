@@ -181,8 +181,14 @@ export const useDb = create<DbState>()((set, get) => {
     },
 
     refresh: async (keys) => {
-      const results = await Promise.all(keys.map((k) => fetchColl(k).then((v) => [k, v] as const)));
-      set(Object.fromEntries(results) as Partial<DbState>);
+      // allSettled: si una colección falla (p. ej. endpoint no disponible),
+      // las demás se actualizan igual y no rompe el flujo de la mutación.
+      const results = await Promise.allSettled(keys.map((k) => fetchColl(k)));
+      const patch: Record<string, unknown> = {};
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") patch[keys[i]] = r.value;
+      });
+      set(patch as Partial<DbState>);
     },
 
     // ── Pacientes ──
