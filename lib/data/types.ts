@@ -36,6 +36,16 @@ export interface Psicologo {
   horario?: string;
 }
 
+/** Franja de disponibilidad semanal recurrente de un psicólogo. */
+export interface Disponibilidad {
+  id: string;
+  psicologoId: string;
+  diaSemana: number; // 0=Domingo … 6=Sábado
+  horaInicio: string; // HH:mm
+  horaFin: string; // HH:mm
+  duracionMin: number;
+}
+
 export type EstadoUsuario = "Activo" | "Inactivo";
 
 export interface Usuario {

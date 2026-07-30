@@ -8,6 +8,7 @@ import type {
   AtnItem,
   Cita,
   ConsultorioConfig,
+  Disponibilidad,
   EvaluacionNeuro,
   EvolucionSesion,
   Pago,
@@ -65,6 +66,17 @@ export function mapServicio(r: any): Servicio {
     duracionMin: n(r.duracionMin),
     precio: n(r.precio),
     color: r.color,
+  };
+}
+
+export function mapDisponibilidad(r: any): Disponibilidad {
+  return {
+    id: s(r.id),
+    psicologoId: s(r.psicologoId),
+    diaSemana: n(r.diaSemana),
+    horaInicio: r.horaInicio,
+    horaFin: r.horaFin,
+    duracionMin: n(r.duracionMin),
   };
 }
 

@@ -8,10 +8,11 @@ import { BadgeCheck, ClipboardPlus, Eye, HandCoins, MoreHorizontal } from "lucid
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { EmptyState } from "@/components/shared/empty-state";
-import { EstadoPagoBadge } from "@/components/shared/status-badge";
+import { EstadoPagoBadge, MetodoChips } from "@/components/shared/status-badge";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { CobroDialog } from "@/components/atenciones/cobro-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { useDbReady } from "@/lib/data/hooks";
-import { atnEstado, atnPagado, atnSaldo, atnTotal } from "@/lib/data/atenciones";
+import { atnEstado, atnMetodos, atnPagado, atnSaldo, atnTotal } from "@/lib/data/atenciones";
 import { formatDate, formatPEN } from "@/lib/format";
 import type { Atencion } from "@/lib/data/types";
 
@@ -31,7 +32,12 @@ type Row = Atencion & {
   _resumen: string;
   _total: number;
   _saldo: number;
+  _metodos: string[];
 };
+
+function hoyIso() {
+  return new Date().toLocaleDateString("en-CA");
+}
 
 export default function AtencionesPage() {
   const router = useRouter();
@@ -41,8 +47,14 @@ export default function AtencionesPage() {
   const psicologos = useDb((s) => s.psicologos);
 
   const [cobrar, setCobrar] = React.useState<Atencion | undefined>();
+  // Filtro por fecha: null = todas; string = ese día (YYYY-MM-DD).
+  const [fechaFiltro, setFechaFiltro] = React.useState<string | null>(null);
 
-  const activas = React.useMemo(() => atenciones.filter((a) => !a.anulada), [atenciones]);
+  const activas = React.useMemo(
+    () =>
+      atenciones.filter((a) => !a.anulada && (!fechaFiltro || a.fecha === fechaFiltro)),
+    [atenciones, fechaFiltro],
+  );
 
   const data: Row[] = React.useMemo(
     () =>
@@ -56,6 +68,7 @@ export default function AtencionesPage() {
           _resumen: a.items.map((i) => i.nombre).join(", "),
           _total: atnTotal(a),
           _saldo: atnSaldo(a),
+          _metodos: atnMetodos(a),
         })),
     [activas, pacientes, psicologos],
   );
@@ -102,6 +115,11 @@ export default function AtencionesPage() {
           ) : (
             <span className="tabular-nums text-muted-foreground">—</span>
           ),
+      },
+      {
+        id: "metodo",
+        header: "Método",
+        cell: ({ row }) => <MetodoChips metodos={row.original._metodos} />,
       },
       {
         id: "estado",
@@ -156,6 +174,35 @@ export default function AtencionesPage() {
           <KpiCard kpi={{ label: "Por cobrar", value: formatPEN(totales.pendiente), icon: HandCoins, color: "#f4b21f" }} />
         </div>
       )}
+
+      {/* Filtro por día (como intimas: ver lo del día o todas) */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2">
+        <Button
+          variant={fechaFiltro === null ? "default" : "ghost"}
+          size="sm"
+          className={fechaFiltro === null ? "bg-brand-gradient text-white" : ""}
+          onClick={() => setFechaFiltro(null)}
+        >
+          Todas
+        </Button>
+        <Button
+          variant={fechaFiltro === hoyIso() ? "default" : "ghost"}
+          size="sm"
+          className={fechaFiltro === hoyIso() ? "bg-brand-gradient text-white" : ""}
+          onClick={() => setFechaFiltro(hoyIso())}
+        >
+          Hoy
+        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Día:</span>
+          <Input
+            type="date"
+            value={fechaFiltro ?? ""}
+            onChange={(e) => setFechaFiltro(e.target.value || null)}
+            className="h-8 w-40"
+          />
+        </div>
+      </div>
 
       {!ready ? (
         <div className="space-y-2">

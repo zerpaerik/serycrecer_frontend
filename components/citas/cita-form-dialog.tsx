@@ -66,12 +66,17 @@ export function CitaFormDialog({
   onOpenChange,
   cita,
   fechaInicial,
+  psicologoInicial,
+  horaInicial,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cita?: Cita;
   /** Fecha por defecto para una cita nueva (ISO YYYY-MM-DD). */
   fechaInicial?: string;
+  /** Psicólogo y hora por defecto (al agendar desde un horario libre). */
+  psicologoInicial?: string;
+  horaInicial?: string;
 }) {
   const pacientes = useDb((s) => s.pacientes);
   const psicologos = useDb((s) => s.psicologos);
@@ -85,14 +90,14 @@ export function CitaFormDialog({
   const defaults = React.useCallback(
     (): Values => ({
       pacienteId: cita?.pacienteId ?? "",
-      psicologoId: cita?.psicologoId ?? "",
+      psicologoId: cita?.psicologoId ?? psicologoInicial ?? "",
       servicioId: cita?.servicioId ?? "",
       fecha: cita?.fecha ?? fechaInicial ?? new Date().toISOString().slice(0, 10),
-      hora: cita?.hora ?? "09:00",
+      hora: cita?.hora ?? horaInicial ?? "09:00",
       paquetePacienteId: cita?.paquetePacienteId ?? "none",
       notas: cita?.notas ?? "",
     }),
-    [cita, fechaInicial],
+    [cita, fechaInicial, psicologoInicial, horaInicial],
   );
 
   const {

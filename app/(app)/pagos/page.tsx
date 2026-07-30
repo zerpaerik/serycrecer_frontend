@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { BadgeCheck, Banknote, CreditCard, Landmark, Receipt, Smartphone, Wallet } from "lucide-react";
+import { BadgeCheck, Banknote, CreditCard, Landmark, Printer, Receipt, Smartphone, Wallet } from "lucide-react";
 
 import { RoleGuard } from "@/components/shared/role-guard";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { KpiCard } from "@/components/dashboard/kpi-card";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +61,15 @@ function PagosInner() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <PageHeader title="Pagos y Caja" description="Caja diaria del centro" />
+      <PageHeader title="Pagos y Caja" description="Caja diaria del centro">
+        <Button
+          variant="outline"
+          onClick={() => window.open(`/cierre-caja?fecha=${fecha}`, "_blank")}
+        >
+          <Printer className="h-4 w-4" />
+          Cierre de caja (PDF)
+        </Button>
+      </PageHeader>
 
       <div className="flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3">
         <div>

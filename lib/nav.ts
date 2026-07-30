@@ -1,6 +1,7 @@
 import {
   BarChartBig,
   CalendarCheck2,
+  CalendarClock,
   CalendarDays,
   ClipboardPlus,
   HandCoins,
@@ -47,6 +48,7 @@ export const NAV: NavGroup[] = [
     label: "Agenda",
     items: [
       { label: "Citas", href: "/citas", icon: CalendarDays, roles: ALL },
+      { label: "Disponibilidad", href: "/disponibilidad", icon: CalendarClock, roles: [1, 3] },
     ],
   },
   {

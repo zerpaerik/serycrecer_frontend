@@ -150,16 +150,16 @@ const ANAMNESIS: Section = {
       ],
     },
     {
-      title: "Desarrollo psicomotor (edad en meses)",
+      title: "Desarrollo psicomotor",
       fields: [
-        t("dev_cabeza", "Levantó la cabeza"),
-        t("dev_sento", "Logró sentarse"),
-        t("dev_gateo", "Empezó a gatear"),
-        t("dev_bipedestacion", "Bipedestación"),
-        t("dev_miraba", "Miraba a los ojos"),
+        t("dev_sento", "Logró sentarse (edad en meses)"),
+        t("dev_gateo", "Empezó a gatear (edad en meses)"),
+        t("dev_bipedestacion", "Bipedestación (edad en meses)"),
+        t("dev_miraba", "Miraba a los ojos (edad en meses)"),
         t("dev_lactancia", "Lactancia"),
-        b("dev_zurdo", "Zurdo"),
-        b("dev_diestro", "Diestro"),
+        sel("dev_lateralidad", "Lateralidad", ["Zurdo", "Diestro", "Ambidiestro", "No definido"]),
+        b("dev_cabeza", "Levantó la cabeza"),
+        b("dev_panal", "Uso de pañal"),
       ],
     },
     {
@@ -201,6 +201,7 @@ const ANAMNESIS: Section = {
         b("au_bano_solo", "Va al baño solo"),
         b("au_viste_solo", "Se cambia / viste solo"),
         b("au_rutinas", "Tiene horarios, hábitos o rutinas"),
+        ta("au_autonomia", "Autonomía"),
       ],
     },
     {
@@ -221,7 +222,7 @@ const ANAMNESIS: Section = {
 };
 
 // ──────────────────── 3. PLAN DE EVALUACIÓN ────────────────────
-const PLAN_EVAL: Section = {
+export const PLAN_EVAL: Section = {
   id: "plan_evaluacion",
   title: "Plan de evaluación",
   groups: [
@@ -314,7 +315,9 @@ const PLAN_EVAL: Section = {
   ],
 };
 
-export const SECCIONES: Section[] = [TAMIZAJE, ANAMNESIS, PLAN_EVAL];
+// "Plan de evaluación" se retiró de la historia clínica a pedido del cliente.
+// (Se conserva el objeto PLAN_EVAL por si se reactiva más adelante.)
+export const SECCIONES: Section[] = [TAMIZAJE, ANAMNESIS];
 
 /** Estados de un objetivo del plan de trabajo. */
 export const ESTADOS_OBJETIVO = ["En proceso inicial", "Muestra mejora", "Logrado"] as const;

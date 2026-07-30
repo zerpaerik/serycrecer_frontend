@@ -8,6 +8,7 @@ import type {
   Atencion,
   Cita,
   ConsultorioConfig,
+  Disponibilidad,
   EstadoCita,
   EvaluacionNeuro,
   EvolucionSesion,
@@ -34,7 +35,8 @@ const CONFIG_DEFAULT: ConsultorioConfig = { nombre: "Ser y Crecer", moneda: "PEN
 
 type CollKey =
   | "pacientes" | "psicologos" | "servicios" | "paquetes" | "paquetesPaciente"
-  | "citas" | "atenciones" | "evaluaciones" | "evoluciones" | "usuarios" | "config";
+  | "citas" | "atenciones" | "evaluaciones" | "evoluciones" | "usuarios"
+  | "disponibilidad" | "config";
 
 interface DbState {
   hydrated: boolean;
@@ -48,6 +50,7 @@ interface DbState {
   evaluaciones: EvaluacionNeuro[];
   evoluciones: EvolucionSesion[];
   usuarios: Usuario[];
+  disponibilidad: Disponibilidad[];
   config: ConsultorioConfig;
 
   loadAll: () => Promise<void>;
@@ -95,6 +98,9 @@ interface DbState {
   updateEvolucion: (id: string, data: Partial<EvolucionSesion>) => Promise<void>;
   deleteEvolucion: (id: string) => Promise<void>;
 
+  addDisponibilidad: (data: Omit<Disponibilidad, "id">) => Promise<Disponibilidad>;
+  deleteDisponibilidad: (id: string) => Promise<void>;
+
   setHydrated: () => void;
 }
 
@@ -113,6 +119,7 @@ async function fetchColl(key: CollKey): Promise<unknown> {
     case "evaluaciones": return (await api.get<unknown[]>("/evaluaciones")).map(M.mapEvaluacion);
     case "evoluciones": return (await api.get<unknown[]>("/evoluciones")).map(M.mapEvolucion);
     case "usuarios": return (await api.get<unknown[]>("/usuarios")).map(M.mapUsuario);
+    case "disponibilidad": return (await api.get<unknown[]>("/disponibilidad")).map(M.mapDisponibilidad);
     case "config": return M.mapConfig(await api.get("/config"));
   }
 }
@@ -163,12 +170,13 @@ export const useDb = create<DbState>()((set, get) => {
     evaluaciones: [],
     evoluciones: [],
     usuarios: [],
+    disponibilidad: [],
     config: CONFIG_DEFAULT,
 
     loadAll: async () => {
       const keys: CollKey[] = [
         "pacientes", "psicologos", "servicios", "paquetes", "paquetesPaciente",
-        "citas", "atenciones", "evaluaciones", "evoluciones", "usuarios", "config",
+        "citas", "atenciones", "evaluaciones", "evoluciones", "usuarios", "disponibilidad", "config",
       ];
       // allSettled: un fallo transitorio en una colección no tumba el resto.
       const results = await Promise.allSettled(keys.map((k) => fetchColl(k)));
@@ -370,6 +378,20 @@ export const useDb = create<DbState>()((set, get) => {
     deleteEvolucion: async (id) => {
       await api.del(`/evoluciones/${id}`);
       set((s) => ({ evoluciones: s.evoluciones.filter((x) => x.id !== id) }));
+    },
+
+    // ── Disponibilidad ──
+    addDisponibilidad: async (data) => {
+      const d = M.mapDisponibilidad(await api.post("/disponibilidad", {
+        psicologoId: toId(data.psicologoId), diaSemana: data.diaSemana,
+        horaInicio: data.horaInicio, horaFin: data.horaFin, duracionMin: data.duracionMin,
+      }));
+      set((s) => ({ disponibilidad: [...s.disponibilidad, d] }));
+      return d;
+    },
+    deleteDisponibilidad: async (id) => {
+      await api.del(`/disponibilidad/${id}`);
+      set((s) => ({ disponibilidad: s.disponibilidad.filter((x) => x.id !== id) }));
     },
 
     setHydrated: () => set({ hydrated: true }),

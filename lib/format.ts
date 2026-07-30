@@ -39,16 +39,25 @@ const DATE_LONG = new Intl.DateTimeFormat("es-PE", {
   year: "numeric",
 });
 
+/**
+ * Parsea una fecha. Las cadenas "YYYY-MM-DD" se interpretan a mediodía local
+ * para evitar el desfase de un día por zona horaria (UTC medianoche).
+ */
+function parseFecha(date: string | Date): Date {
+  if (typeof date !== "string") return date;
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date + "T12:00:00") : new Date(date);
+}
+
 /** 06 jun 2026 */
 export function formatDate(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = parseFecha(date);
   if (Number.isNaN(d.getTime())) return "—";
   return DATE_FULL.format(d);
 }
 
 /** 6 de junio de 2026 */
 export function formatDateLong(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = parseFecha(date);
   if (Number.isNaN(d.getTime())) return "—";
   return DATE_LONG.format(d);
 }
