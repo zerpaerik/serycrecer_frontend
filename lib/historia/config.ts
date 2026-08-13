@@ -7,7 +7,9 @@
  * Ampliar el instrumento = agregar campos aquí, sin tocar la UI.
  */
 
-export type FieldType = "text" | "textarea" | "number" | "date" | "select" | "bool";
+// "cumple" = igual que "bool" pero con etiquetas "Cumple / No cumple"
+// (criterios diagnósticos DSM-5).
+export type FieldType = "text" | "textarea" | "number" | "date" | "select" | "bool" | "cumple";
 
 export interface Field {
   id: string;
@@ -36,6 +38,7 @@ const t = (id: string, label: string, full = false): Field => ({ id, label, type
 const ta = (id: string, label: string): Field => ({ id, label, type: "textarea", full: true });
 const num = (id: string, label: string): Field => ({ id, label, type: "number" });
 const b = (id: string, label: string, help?: string): Field => ({ id, label, type: "bool", help });
+const cu = (id: string, label: string): Field => ({ id, label, type: "cumple" });
 const sel = (id: string, label: string, options: string[]): Field => ({ id, label, type: "select", options });
 
 const INTENSIDAD = ["Leve", "Moderado", "Severo"];
@@ -90,24 +93,65 @@ const TAMIZAJE: Section = {
       ],
     },
     {
-      title: "Criterios diagnósticos — TEA (DSM-5)",
+      title: "TEA — Criterio A · Comunicación e interacción social (debe cumplir TODO)",
       fields: [
-        b("tea_a", "A. Deficiencias persistentes en comunicación e interacción social (reciprocidad, conductas no verbales, relaciones)"),
-        b("tea_b", "B. Patrones restrictivos y repetitivos (estereotipias, insistencia en monotonía, intereses restringidos, hiper/hiporreactividad sensorial)"),
-        b("tea_c", "C. Síntomas presentes en las primeras fases del desarrollo"),
-        b("tea_d", "D. Deterioro clínicamente significativo del funcionamiento"),
-        b("tea_e", "E. No se explica mejor por discapacidad intelectual"),
+        cu("tea_a1", "A.1 Deficiencias en la reciprocidad socioemocional: desde un acercamiento social anormal y fracaso de la conversación normal en ambos sentidos, pasando por la disminución en intereses, emociones o afectos compartidos, hasta el fracaso en iniciar o responder a interacciones sociales."),
+        cu("tea_a2", "A.2 Deficiencias en las conductas comunicativas no verbales: desde una comunicación verbal y no verbal poco integrada, pasando por anomalías del contacto visual y del lenguaje corporal o deficiencias del uso de gestos, hasta la falta total de expresión facial y de comunicación no verbal."),
+        cu("tea_a3", "A.3 Deficiencias en el desarrollo, mantenimiento y comprensión de las relaciones: desde dificultades para ajustar el comportamiento a contextos sociales, pasando por dificultades para compartir juegos imaginativos o hacer amigos, hasta la ausencia de interés por otras personas."),
       ],
     },
     {
-      title: "Criterios diagnósticos — TDAH (DSM-5)",
+      title: "TEA — Criterio B · Patrones restrictivos y repetitivos (dos o más)",
       fields: [
-        b("tdah_inatencion", "Inatención: ≥6 síntomas por al menos 6 meses"),
-        b("tdah_hiper", "Hiperactividad-impulsividad: ≥6 síntomas por al menos 6 meses"),
-        b("tdah_antes12", "B. Síntomas presentes antes de los 12 años"),
-        b("tdah_contextos", "C. Presentes en dos o más contextos"),
-        b("tdah_interferencia", "D. Interfieren con el funcionamiento social/académico/laboral"),
-        b("tdah_no_otro", "E. No se explican mejor por otro trastorno"),
+        cu("tea_b1", "B.1 Movimientos, utilización de objetos o habla estereotipados o repetitivos (estereotipias motoras, alineación de juguetes, ecolalia, frases idiosincrásicas)."),
+        cu("tea_b2", "B.2 Insistencia en la monotonía, inflexibilidad de rutinas o patrones ritualizados de comportamiento (angustia ante cambios pequeños, dificultades con las transiciones, rituales, mismo camino o alimentos)."),
+        cu("tea_b3", "B.3 Intereses muy restringidos y fijos, anormales por su intensidad o foco (fuerte apego o preocupación por objetos inusuales, intereses excesivamente circunscritos o perseverantes)."),
+        cu("tea_b4", "B.4 Hiper- o hiporreactividad a estímulos sensoriales o interés inhabitual por aspectos sensoriales (indiferencia al dolor/temperatura, respuesta adversa a sonidos/texturas, olfateo/palpación de objetos, fascinación por luces o movimiento)."),
+      ],
+    },
+    {
+      title: "TEA — Criterios C, D y E",
+      fields: [
+        cu("tea_c", "C. Los síntomas están presentes en las primeras fases del desarrollo (pueden no manifestarse del todo hasta que la demanda social supera las capacidades, o estar enmascarados por estrategias aprendidas)."),
+        cu("tea_d", "D. Los síntomas causan un deterioro clínicamente significativo en lo social, laboral u otras áreas importantes del funcionamiento habitual."),
+        cu("tea_e", "E. Estas alteraciones no se explican mejor por discapacidad intelectual o retraso global del desarrollo (la comunicación social ha de estar por debajo de lo previsto para el nivel de desarrollo)."),
+      ],
+    },
+    {
+      title: "TDAH — Criterio A · Inatención (seis o más, ≥6 meses)",
+      fields: [
+        cu("tdah_ina_a", "a. Con frecuencia falla en prestar atención a los detalles o comete errores por descuido en tareas, trabajo u otras actividades."),
+        cu("tdah_ina_b", "b. Con frecuencia tiene dificultades para mantener la atención en tareas o actividades recreativas."),
+        cu("tdah_ina_c", "c. Con frecuencia parece no escuchar cuando se le habla directamente."),
+        cu("tdah_ina_d", "d. Con frecuencia no sigue las instrucciones y no termina las tareas, quehaceres o deberes."),
+        cu("tdah_ina_e", "e. Con frecuencia tiene dificultad para organizar tareas y actividades."),
+        cu("tdah_ina_f", "f. Con frecuencia evita o le disgustan las tareas que requieren un esfuerzo mental sostenido."),
+        cu("tdah_ina_g", "g. Con frecuencia pierde cosas necesarias para tareas o actividades."),
+        cu("tdah_ina_h", "h. Con frecuencia se distrae con facilidad por estímulos externos."),
+        cu("tdah_ina_i", "i. Con frecuencia olvida las actividades cotidianas."),
+      ],
+    },
+    {
+      title: "TDAH — Criterio A · Hiperactividad-impulsividad (seis o más, ≥6 meses)",
+      fields: [
+        cu("tdah_hip_a", "a. Con frecuencia juguetea o golpea las manos o los pies, o se retuerce en el asiento."),
+        cu("tdah_hip_b", "b. Con frecuencia se levanta en situaciones en que se espera que permanezca sentado."),
+        cu("tdah_hip_c", "c. Con frecuencia corretea o trepa en situaciones inapropiadas (en adultos, sensación de inquietud)."),
+        cu("tdah_hip_d", "d. Con frecuencia es incapaz de jugar o de ocuparse tranquilamente en actividades recreativas."),
+        cu("tdah_hip_e", "e. Con frecuencia está 'ocupado', actuando como si 'lo impulsara un motor'."),
+        cu("tdah_hip_f", "f. Con frecuencia habla excesivamente."),
+        cu("tdah_hip_g", "g. Con frecuencia responde inesperadamente o antes de que se concluya una pregunta."),
+        cu("tdah_hip_h", "h. Con frecuencia le es difícil esperar su turno."),
+        cu("tdah_hip_i", "i. Con frecuencia interrumpe o se inmiscuye con otros."),
+      ],
+    },
+    {
+      title: "TDAH — Criterios B, C, D y E",
+      fields: [
+        cu("tdah_b", "B. Algunos síntomas de inatención o hiperactivo-impulsivos estaban presentes antes de los 12 años."),
+        cu("tdah_c", "C. Varios síntomas están presentes en dos o más contextos (casa, escuela/trabajo, con amigos o parientes, otras actividades)."),
+        cu("tdah_d", "D. Existen pruebas claras de que los síntomas interfieren o reducen la calidad del funcionamiento social, académico o laboral."),
+        cu("tdah_e", "E. Los síntomas no se producen exclusivamente durante una esquizofrenia u otro trastorno psicótico y no se explican mejor por otro trastorno mental."),
       ],
     },
   ],

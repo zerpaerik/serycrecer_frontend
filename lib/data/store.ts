@@ -265,7 +265,12 @@ export const useDb = create<DbState>()((set, get) => {
       return a;
     },
     updateAtencion: async (id, data) => {
-      await api.patch(`/atenciones/${id}`, { observaciones: data.observaciones, hora: data.hora });
+      const body: Record<string, unknown> = {};
+      if (data.observaciones !== undefined) body.observaciones = data.observaciones;
+      if (data.hora !== undefined) body.hora = data.hora;
+      if (data.fecha !== undefined) body.fecha = data.fecha;
+      if (data.psicologoId !== undefined) body.psicologoId = toId(data.psicologoId);
+      await api.patch(`/atenciones/${id}`, body);
       await get().refresh(["atenciones"]);
     },
     agregarPago: async (atencionId, pago) => {

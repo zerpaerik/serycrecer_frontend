@@ -29,6 +29,11 @@ function CampoBool({ pacienteId, field }: { pacienteId: string; field: Field }) 
   const set = (nuevo: Partial<RespuestaBool>) =>
     setRespuesta(pacienteId, field.id, { v, obs: valor?.obs ?? "", ...nuevo });
 
+  const labels =
+    field.type === "cumple"
+      ? { si: "Cumple", no: "No cumple" }
+      : { si: "Sí", no: "No" };
+
   return (
     <div className="flex flex-col gap-2 border-b py-2.5 last:border-0 sm:flex-row sm:items-center">
       <p className="flex-1 text-sm">{field.label}</p>
@@ -40,7 +45,7 @@ function CampoBool({ pacienteId, field }: { pacienteId: string; field: Field }) 
               type="button"
               onClick={() => set({ v: v === opt ? null : opt })}
               className={cn(
-                "px-3 py-1 text-xs font-medium capitalize transition-colors",
+                "whitespace-nowrap px-3 py-1 text-xs font-medium transition-colors",
                 v === opt
                   ? opt === "si"
                     ? "bg-success text-white"
@@ -48,7 +53,7 @@ function CampoBool({ pacienteId, field }: { pacienteId: string; field: Field }) 
                   : "hover:bg-accent",
               )}
             >
-              {opt === "si" ? "Sí" : "No"}
+              {labels[opt]}
             </button>
           ))}
         </div>
@@ -106,8 +111,8 @@ function CampoSimple({ pacienteId, field }: { pacienteId: string; field: Field }
 }
 
 function GrupoCard({ pacienteId, group }: { pacienteId: string; group: Group }) {
-  const bools = group.fields.filter((f) => f.type === "bool");
-  const simples = group.fields.filter((f) => f.type !== "bool");
+  const bools = group.fields.filter((f) => f.type === "bool" || f.type === "cumple");
+  const simples = group.fields.filter((f) => f.type !== "bool" && f.type !== "cumple");
   return (
     <Card>
       <CardHeader>

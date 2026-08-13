@@ -4,12 +4,13 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Ban, HandCoins, Package, Stethoscope } from "lucide-react";
+import { ArrowLeft, Ban, HandCoins, Package, Pencil, Printer, Stethoscope } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { EstadoPagoBadge } from "@/components/shared/status-badge";
 import { CobroDialog } from "@/components/atenciones/cobro-dialog";
 import { AnularDialog } from "@/components/atenciones/anular-dialog";
+import { AtencionEditDialog } from "@/components/atenciones/atencion-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDb, pacienteNombre } from "@/lib/data/store";
@@ -29,6 +30,7 @@ export default function AtencionDetallePage() {
 
   const [cobroOpen, setCobroOpen] = React.useState(false);
   const [anularOpen, setAnularOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
 
   if (ready && !atencion) {
     return (
@@ -61,18 +63,26 @@ export default function AtencionDetallePage() {
         title={pacienteNombre(paciente)}
         description={`${formatDate(atencion.fecha)}${atencion.hora ? " · " + atencion.hora : ""} · ${psi?.nombre ?? "—"}`}
       >
-        {!atencion.anulada && (
-          <div className="flex gap-2">
-            {saldo > 0 && (
-              <Button className="bg-brand-gradient text-white" onClick={() => setCobroOpen(true)}>
-                <HandCoins className="h-4 w-4" />Abonar
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => window.open(`/ticket-atencion?id=${atencion.id}`, "_blank")}>
+            <Printer className="h-4 w-4" />Ticket
+          </Button>
+          {!atencion.anulada && (
+            <>
+              {saldo > 0 && (
+                <Button className="bg-brand-gradient text-white" onClick={() => setCobroOpen(true)}>
+                  <HandCoins className="h-4 w-4" />Abonar
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4" />Editar
               </Button>
-            )}
-            <Button variant="outline" className="text-destructive" onClick={() => setAnularOpen(true)}>
-              <Ban className="h-4 w-4" />Anular
-            </Button>
-          </div>
-        )}
+              <Button variant="outline" className="text-destructive" onClick={() => setAnularOpen(true)}>
+                <Ban className="h-4 w-4" />Anular
+              </Button>
+            </>
+          )}
+        </div>
       </PageHeader>
 
       {atencion.anulada && (
@@ -140,6 +150,7 @@ export default function AtencionDetallePage() {
         onOpenChange={setAnularOpen}
         onConfirm={(motivo) => { anularAtencion(atencion.id, motivo); toast.success("Atención anulada"); setAnularOpen(false); }}
       />
+      <AtencionEditDialog key={`${atencion.id}-${editOpen}`} open={editOpen} onOpenChange={setEditOpen} atencion={atencion} />
     </div>
   );
 }
