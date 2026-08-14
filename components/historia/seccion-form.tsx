@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +13,110 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useDb } from "@/lib/data/store";
 import type { RespuestaBool } from "@/lib/data/types";
 import type { Field, Group, Section } from "@/lib/historia/config";
+
+/** Textarea que crece con el contenido (para ver todo lo que se escribe). */
+function AutoTextarea({
+  value,
+  onChange,
+  className,
+  placeholder,
+  ...props
+}: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = React.useRef<HTMLTextAreaElement>(null);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    // Re-ajusta tras el layout (evita medir alto erróneo al montar).
+    const raf = requestAnimationFrame(fit);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={1}
+      className={cn(
+        "block w-full resize-none rounded-md border border-input bg-transparent px-2 py-1 text-xs leading-snug shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Campo de observación: textarea que crece + botón para abrir un modal amplio. */
+function ObservacionField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="relative w-full sm:w-56">
+      <AutoTextarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Observación"
+        className="max-h-40 overflow-y-auto pr-7"
+      />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Ampliar observación"
+        title="Ampliar"
+        className="absolute right-1 top-1 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+      >
+        <Maximize2 className="h-3.5 w-3.5" />
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Observación</DialogTitle>
+            <DialogDescription className="line-clamp-3">{label}</DialogDescription>
+          </DialogHeader>
+          <Textarea
+            autoFocus
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={12}
+            placeholder="Escribe la observación con el detalle que necesites…"
+            className="text-sm"
+          />
+          <DialogFooter>
+            <Button className="bg-brand-gradient text-white" onClick={() => setOpen(false)}>
+              Listo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 /** Campo Sí/No con observación (patrón de la anamnesis). */
 function CampoBool({ pacienteId, field }: { pacienteId: string; field: Field }) {
@@ -35,9 +135,9 @@ function CampoBool({ pacienteId, field }: { pacienteId: string; field: Field }) 
       : { si: "Sí", no: "No" };
 
   return (
-    <div className="flex flex-col gap-2 border-b py-2.5 last:border-0 sm:flex-row sm:items-center">
-      <p className="flex-1 text-sm">{field.label}</p>
-      <div className="flex shrink-0 items-center gap-2">
+    <div className="flex flex-col gap-2 border-b py-2.5 last:border-0 sm:flex-row sm:items-start">
+      <p className="flex-1 text-sm sm:pt-1">{field.label}</p>
+      <div className="flex shrink-0 items-start gap-2">
         <div className="flex overflow-hidden rounded-lg border">
           {(["si", "no"] as const).map((opt) => (
             <button
@@ -57,11 +157,10 @@ function CampoBool({ pacienteId, field }: { pacienteId: string; field: Field }) 
             </button>
           ))}
         </div>
-        <Input
+        <ObservacionField
+          label={field.label}
           value={valor?.obs ?? ""}
-          onChange={(e) => set({ obs: e.target.value })}
-          placeholder="Observación"
-          className="h-8 w-40 text-xs"
+          onChange={(obs) => set({ obs })}
         />
       </div>
     </div>

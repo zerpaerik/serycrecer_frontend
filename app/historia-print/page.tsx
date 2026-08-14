@@ -61,7 +61,9 @@ function GrupoImpreso({ title, fields, respuestas }: { title: string; fields: Fi
               <span className="w-1/2 shrink-0 text-gray-600">{f.label}</span>
               <span className="flex-1 text-gray-900">
                 <span className={val.lleno ? "font-medium" : "text-gray-400"}>{val.texto}</span>
-                {val.obs && <span className="text-gray-500"> — {val.obs}</span>}
+                {val.obs && (
+                  <span className="mt-0.5 block whitespace-pre-wrap break-words text-gray-600">{val.obs}</span>
+                )}
               </span>
             </div>
           );
