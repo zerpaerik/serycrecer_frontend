@@ -27,69 +27,59 @@ function esBool(r: unknown): r is RespuestaBool {
   return typeof r === "object" && r !== null && "v" in (r as object);
 }
 
-/** Devuelve {texto, obs} de un campo, o null si está vacío (no se llenó). */
-function valorCampo(field: Field, respuestas: Record<string, unknown>): { texto: string; obs?: string } | null {
+const VACIO = "—";
+
+/** Devuelve {texto, obs, lleno} de un campo. `lleno` indica si tiene respuesta. */
+function valorCampo(field: Field, respuestas: Record<string, unknown>): { texto: string; obs?: string; lleno: boolean } {
   const raw = respuestas[field.id];
   if (field.type === "bool" || field.type === "cumple") {
-    if (!esBool(raw) || (raw.v == null && !raw.obs)) return null;
+    const b = esBool(raw) ? raw : null;
+    const v = b?.v ?? null;
     const texto =
       field.type === "cumple"
-        ? raw.v === "si"
-          ? "Cumple"
-          : raw.v === "no"
-            ? "No cumple"
-            : "—"
-        : raw.v === "si"
-          ? "Sí"
-          : raw.v === "no"
-            ? "No"
-            : "—";
-    return { texto, obs: raw.obs || undefined };
+        ? v === "si" ? "Cumple" : v === "no" ? "No cumple" : VACIO
+        : v === "si" ? "Sí" : v === "no" ? "No" : VACIO;
+    return { texto, obs: b?.obs || undefined, lleno: v != null || !!b?.obs };
   }
-  if (raw == null || raw === "") return null;
-  if (field.type === "date") return { texto: formatDate(String(raw)) };
-  return { texto: String(raw) };
+  if (raw == null || raw === "") return { texto: VACIO, lleno: false };
+  if (field.type === "date") return { texto: formatDate(String(raw)), lleno: true };
+  return { texto: String(raw), lleno: true };
 }
 
-// ── Secciones renderizadas (sólo lo que tiene contenido) ────────────
+// ── Instrumento completo (todas las secciones/grupos/campos) ────────
 function GrupoImpreso({ title, fields, respuestas }: { title: string; fields: Field[]; respuestas: Record<string, unknown> }) {
-  const llenos = fields
-    .map((f) => ({ f, val: valorCampo(f, respuestas) }))
-    .filter((x) => x.val !== null);
-  if (llenos.length === 0) return null;
-
   return (
     <div className="mb-3 break-inside-avoid rounded-md border border-gray-200">
       <div className="border-b border-gray-200 bg-gray-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-teal-700">
         {title}
       </div>
       <div className="divide-y divide-gray-100">
-        {llenos.map(({ f, val }) => (
-          <div key={f.id} className="flex gap-3 px-3 py-1.5 text-[11.5px] leading-snug">
-            <span className="w-1/2 shrink-0 text-gray-600">{f.label}</span>
-            <span className="flex-1 text-gray-900">
-              <span className="font-medium">{val!.texto}</span>
-              {val!.obs && <span className="text-gray-500"> — {val!.obs}</span>}
-            </span>
-          </div>
-        ))}
+        {fields.map((f) => {
+          const val = valorCampo(f, respuestas);
+          return (
+            <div key={f.id} className="flex gap-3 px-3 py-1.5 text-[11.5px] leading-snug">
+              <span className="w-1/2 shrink-0 text-gray-600">{f.label}</span>
+              <span className="flex-1 text-gray-900">
+                <span className={val.lleno ? "font-medium" : "text-gray-400"}>{val.texto}</span>
+                {val.obs && <span className="text-gray-500"> — {val.obs}</span>}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function SeccionImpresa({ seccion, respuestas, index }: { seccion: Section; respuestas: Record<string, unknown>; index: number }) {
-  const grupos = seccion.groups
-    .map((g) => <GrupoImpreso key={g.title} title={g.title} fields={g.fields} respuestas={respuestas} />)
-    .filter(Boolean);
-  if (grupos.every((g) => g === null)) return null;
-
   return (
     <section className="mb-5">
       <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
         {index}. {seccion.title}
       </h2>
-      {grupos}
+      {seccion.groups.map((g) => (
+        <GrupoImpreso key={g.title} title={g.title} fields={g.fields} respuestas={respuestas} />
+      ))}
     </section>
   );
 }
@@ -203,11 +193,11 @@ function HistoriaPrintInner() {
       ))}
 
       {/* Plan de trabajo */}
-      {objetivos.length > 0 && (
-        <section className="mb-5">
-          <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
-            {SECCIONES.length + 1}. Plan de trabajo
-          </h2>
+      <section className="mb-5">
+        <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
+          {SECCIONES.length + 1}. Plan de trabajo
+        </h2>
+        {objetivos.length > 0 ? (
           <div className="rounded-md border border-gray-200 divide-y divide-gray-100">
             {objetivos.map((o, i) => (
               <div key={o.id} className="flex items-start gap-3 px-3 py-2 text-[11.5px] break-inside-avoid">
@@ -219,30 +209,34 @@ function HistoriaPrintInner() {
               </div>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="text-[11.5px] text-gray-400">Sin objetivos registrados.</p>
+        )}
+      </section>
 
       {/* Observaciones e informe */}
-      {obs.length > 0 && (
-        <section className="mb-5">
-          <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
-            {SECCIONES.length + 2}. Observaciones e informe
-          </h2>
-          {obs.map((o) => (
+      <section className="mb-5">
+        <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
+          {SECCIONES.length + 2}. Observaciones e informe
+        </h2>
+        {obs.length > 0 ? (
+          obs.map((o) => (
             <div key={o.label} className="mb-2 break-inside-avoid">
               <p className="text-[11px] font-bold uppercase tracking-wide text-teal-700">{o.label}</p>
               <p className="whitespace-pre-wrap text-[11.5px] text-gray-800">{o.v}</p>
             </div>
-          ))}
-        </section>
-      )}
+          ))
+        ) : (
+          <p className="text-[11.5px] text-gray-400">Sin observaciones registradas.</p>
+        )}
+      </section>
 
       {/* Evoluciones */}
-      {evoluciones.length > 0 && (
-        <section className="mb-5">
-          <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
-            {SECCIONES.length + 3}. Evoluciones por sesión
-          </h2>
+      <section className="mb-5">
+        <h2 className="mb-2 border-b-2 border-teal-600 pb-1 text-[13px] font-extrabold text-teal-800">
+          {SECCIONES.length + 3}. Evoluciones por sesión
+        </h2>
+        {evoluciones.length > 0 ? (
           <div className="space-y-2">
             {evoluciones.map((e) => {
               const psi = psicologos.find((p) => p.id === e.psicologoId);
@@ -258,8 +252,10 @@ function HistoriaPrintInner() {
               );
             })}
           </div>
-        </section>
-      )}
+        ) : (
+          <p className="text-[11.5px] text-gray-400">Sin evoluciones registradas.</p>
+        )}
+      </section>
 
       {/* Firma */}
       <div className="mt-12 flex justify-between gap-8 break-inside-avoid text-[11px] text-gray-600">
