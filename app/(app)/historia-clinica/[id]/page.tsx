@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, MoreHorizontal, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, MoreHorizontal, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
 
 import { RoleGuard } from "@/components/shared/role-guard";
 import { PageHeader } from "@/components/shared/page-header";
@@ -138,11 +138,20 @@ function HistoriaDetalleInner() {
         title={nombre}
         description={`${calcAge(paciente.fechaNacimiento)} años · ${paciente.sexo} · ${paciente.tipoDoc} ${paciente.numDoc}`}
       >
-        {evaluacion?.actualizadoEn && (
-          <span className="text-xs text-muted-foreground">
-            Guardado automáticamente · {formatDate(evaluacion.actualizadoEn)}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {evaluacion?.actualizadoEn && (
+            <span className="hidden text-xs text-muted-foreground sm:inline">
+              Guardado automáticamente · {formatDate(evaluacion.actualizadoEn)}
+            </span>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/historia-print?id=${paciente.id}`, "_blank")}
+          >
+            <FileText className="h-4 w-4" />
+            Generar PDF
+          </Button>
+        </div>
       </PageHeader>
 
       <Tabs defaultValue={SECCIONES[0].id}>
