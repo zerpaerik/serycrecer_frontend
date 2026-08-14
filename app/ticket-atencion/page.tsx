@@ -71,7 +71,8 @@ function TicketInner() {
         </div>
 
         <div className="text-center">
-          <p className="text-sm font-bold">{config.nombre ?? "Ser y Crecer"}</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-ticket.png" alt={config.nombre ?? "Ser y Crecer"} className="mx-auto mb-1 w-[46mm] max-w-[70%]" />
           {config.ruc && <p className="text-[10px]">RUC {config.ruc}</p>}
           {config.direccion && <p className="text-[10px]">{config.direccion}</p>}
           {config.telefono && <p className="text-[10px]">{config.telefono}</p>}
