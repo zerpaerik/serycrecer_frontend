@@ -29,6 +29,7 @@ function PagosInner() {
   const ready = useDbReady();
   const atenciones = useDb((s) => s.atenciones);
   const pacientes = useDb((s) => s.pacientes);
+  const gastos = useDb((s) => s.gastos);
 
   const [fecha, setFecha] = React.useState(hoyIso());
 
@@ -59,6 +60,10 @@ function PagosInner() {
     return map;
   }, [cobros]);
 
+  const gastosDia = React.useMemo(() => gastos.filter((g) => g.fecha === fecha), [gastos, fecha]);
+  const totalGastos = gastosDia.reduce((s, g) => s + g.monto, 0);
+  const neto = total - totalGastos;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader title="Pagos y Caja" description="Caja diaria del centro">
@@ -85,28 +90,55 @@ function PagosInner() {
         <Skeleton className="h-40 w-full rounded-xl" />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <KpiCard kpi={{ label: "Total cobrado", value: formatPEN(total), icon: Wallet, color: "#14a89c" }} />
-            <KpiCard kpi={{ label: "N° de pagos", value: String(cobros.length), icon: Receipt, color: "#2b83c2" }} />
-            <KpiCard kpi={{ label: "Ticket promedio", value: formatPEN(cobros.length ? total / cobros.length : 0), icon: BadgeCheck, color: "#8b5cf6" }} />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard kpi={{ label: "Ingresos", value: formatPEN(total), icon: Wallet, color: "#14a89c" }} />
+            <KpiCard kpi={{ label: "Gastos", value: formatPEN(totalGastos), icon: Receipt, color: "#e8774a" }} />
+            <KpiCard kpi={{ label: "Neto en caja", value: formatPEN(neto), icon: BadgeCheck, color: neto < 0 ? "#dc2626" : "#2b83c2" }} />
+            <KpiCard kpi={{ label: "N° de pagos", value: String(cobros.length), icon: BadgeCheck, color: "#8b5cf6" }} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="lg:col-span-1">
-              <CardHeader><CardTitle className="text-base">Por método de pago</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {METODOS_PAGO.map((m) => {
-                  const Icon = ICONO[m];
-                  return (
-                    <div key={m} className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted"><Icon className="h-4 w-4 text-muted-foreground" /></span>
-                      <span className="flex-1 text-sm">{m}</span>
-                      <span className="text-sm font-medium tabular-nums">{formatPEN(porMetodo.get(m) ?? 0)}</span>
+            <div className="space-y-6 lg:col-span-1">
+              <Card>
+                <CardHeader><CardTitle className="text-base">Por método de pago</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {METODOS_PAGO.map((m) => {
+                    const Icon = ICONO[m];
+                    return (
+                      <div key={m} className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted"><Icon className="h-4 w-4 text-muted-foreground" /></span>
+                        <span className="flex-1 text-sm">{m}</span>
+                        <span className="text-sm font-medium tabular-nums">{formatPEN(porMetodo.get(m) ?? 0)}</span>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-base">Gastos del día</CardTitle>
+                  <span className="text-sm font-semibold tabular-nums text-destructive">− {formatPEN(totalGastos)}</span>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {gastosDia.length === 0 ? (
+                    <p className="px-6 py-6 text-center text-sm text-muted-foreground">Sin gastos este día.</p>
+                  ) : (
+                    <div className="divide-y">
+                      {gastosDia.map((g) => (
+                        <div key={g.id} className="flex items-center gap-3 px-6 py-2.5">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium">{g.categoria}</p>
+                            <p className="truncate text-xs text-muted-foreground">{g.descripcion || g.metodo}</p>
+                          </div>
+                          <span className="shrink-0 text-sm font-medium tabular-nums text-destructive">{formatPEN(g.monto)}</span>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             <Card className="lg:col-span-2">
               <CardHeader><CardTitle className="text-base">Pagos del día</CardTitle></CardHeader>

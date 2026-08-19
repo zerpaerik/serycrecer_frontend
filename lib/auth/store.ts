@@ -14,6 +14,8 @@ export interface SessionUser {
   email: string;
   title?: string;
   roleId: RoleId;
+  licencia?: string;
+  psicologoId?: string;
 }
 
 interface Session {
@@ -39,8 +41,33 @@ interface AuthState {
   loginWithCredentials: (email: string, password: string) => Promise<void>;
   loginAsRole: (roleId: RoleId) => Promise<void>;
   switchRole: (roleId: RoleId) => Promise<void>;
+  refreshPerfil: () => Promise<SessionUser | null>;
+  updatePerfil: (data: { nombre?: string; licencia?: string }) => Promise<void>;
+  changePassword: (actual: string, nueva: string) => Promise<void>;
   logout: () => void;
   setHydrated: () => void;
+}
+
+interface PerfilResponse {
+  id: number;
+  nombre: string;
+  email: string;
+  title?: string;
+  roleId: number;
+  licencia?: string | null;
+  psicologoId?: number | null;
+}
+
+function perfilToUser(p: PerfilResponse): SessionUser {
+  return {
+    id: String(p.id),
+    name: p.nombre,
+    email: p.email,
+    title: p.title,
+    roleId: p.roleId as RoleId,
+    licencia: p.licencia ?? undefined,
+    psicologoId: p.psicologoId != null ? String(p.psicologoId) : undefined,
+  };
 }
 
 export const useAuth = create<AuthState>()(
@@ -68,6 +95,27 @@ export const useAuth = create<AuthState>()(
 
       switchRole: async (roleId) => {
         await get().loginAsRole(roleId);
+      },
+
+      refreshPerfil: async () => {
+        const sess = get().session;
+        if (!sess) return null;
+        const p = await api.get<PerfilResponse>("/auth/perfil");
+        const user = perfilToUser(p);
+        set({ session: { ...sess, user, roleId: user.roleId } });
+        return user;
+      },
+
+      updatePerfil: async (data) => {
+        const sess = get().session;
+        if (!sess) return;
+        const p = await api.patch<PerfilResponse>("/auth/perfil", data);
+        const user = perfilToUser(p);
+        set({ session: { ...sess, user, roleId: user.roleId } });
+      },
+
+      changePassword: async (actual, nueva) => {
+        await api.post("/auth/change-password", { actual, nueva });
       },
 
       logout: () => set({ session: null }),

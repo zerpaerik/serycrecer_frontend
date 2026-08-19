@@ -11,7 +11,10 @@ interface CajaResp {
   total: number;
   count: number;
   porMetodo: Record<string, number>;
+  totalGastos?: number;
+  neto?: number;
   pagos: { id: string; monto: number; metodo: string; tipo: string; paciente: string }[];
+  gastos?: { id: string; monto: number; categoria: string; metodo: string; descripcion: string }[];
 }
 interface ConfigResp {
   nombre?: string;
@@ -78,14 +81,20 @@ function CierreCajaInner() {
       </div>
 
       {/* Resumen */}
-      <div className="mt-6 grid grid-cols-2 gap-4">
+      <div className="mt-6 grid grid-cols-3 gap-4">
         <div className="rounded-lg border p-4 text-center">
-          <p className="text-xs uppercase tracking-wide text-gray-500">Total cobrado</p>
-          <p className="text-2xl font-extrabold text-teal-700">{formatPEN(caja.total)}</p>
+          <p className="text-xs uppercase tracking-wide text-gray-500">Ingresos</p>
+          <p className="text-xl font-extrabold text-teal-700">{formatPEN(caja.total)}</p>
         </div>
         <div className="rounded-lg border p-4 text-center">
-          <p className="text-xs uppercase tracking-wide text-gray-500">N.º de pagos</p>
-          <p className="text-2xl font-extrabold">{caja.count}</p>
+          <p className="text-xs uppercase tracking-wide text-gray-500">Gastos</p>
+          <p className="text-xl font-extrabold text-orange-600">− {formatPEN(caja.totalGastos ?? 0)}</p>
+        </div>
+        <div className="rounded-lg border p-4 text-center">
+          <p className="text-xs uppercase tracking-wide text-gray-500">Neto en caja</p>
+          <p className={`text-xl font-extrabold ${(caja.neto ?? caja.total) < 0 ? "text-red-600" : "text-gray-900"}`}>
+            {formatPEN(caja.neto ?? caja.total)}
+          </p>
         </div>
       </div>
 
@@ -132,6 +141,45 @@ function CierreCajaInner() {
           </tbody>
         </table>
       )}
+
+      {/* Detalle de gastos */}
+      {caja.gastos && caja.gastos.length > 0 && (
+        <>
+          <h3 className="mt-6 mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">Gastos del día</h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase text-gray-500">
+                <th className="py-1.5">Categoría</th>
+                <th className="py-1.5">Descripción</th>
+                <th className="py-1.5">Método</th>
+                <th className="py-1.5 text-right">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {caja.gastos.map((g) => (
+                <tr key={g.id} className="border-b">
+                  <td className="py-1.5">{g.categoria}</td>
+                  <td className="py-1.5">{g.descripcion || "—"}</td>
+                  <td className="py-1.5">{g.metodo}</td>
+                  <td className="py-1.5 text-right tabular-nums">{formatPEN(g.monto)}</td>
+                </tr>
+              ))}
+              <tr className="font-bold">
+                <td className="py-2" colSpan={3}>Total gastos</td>
+                <td className="py-2 text-right tabular-nums">{formatPEN(caja.totalGastos ?? 0)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {/* Neto final */}
+      <div className="mt-6 flex items-center justify-between rounded-lg border-2 border-teal-600 px-4 py-3">
+        <span className="text-sm font-bold uppercase tracking-wide text-gray-700">Neto en caja</span>
+        <span className={`text-xl font-extrabold ${(caja.neto ?? caja.total) < 0 ? "text-red-600" : "text-teal-700"}`}>
+          {formatPEN(caja.neto ?? caja.total)}
+        </span>
+      </div>
 
       <p className="mt-8 text-center text-xs text-gray-400">
         Generado el {formatDateLong(hoyIso())} · Ser y Crecer

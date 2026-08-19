@@ -134,6 +134,10 @@ function HistoriaPrintInner() {
   ].filter((o) => o.v && o.v.trim());
   const nombreCompleto = `${paciente.nombres} ${paciente.apellidos}`.trim();
   const nombreCentro = config?.nombre ?? "Ser y Crecer";
+  // Profesional responsable: el de la evolución más reciente (si hay).
+  const profesional = evoluciones.length
+    ? psicologos.find((p) => p.id === evoluciones[0].psicologoId)
+    : undefined;
 
   return (
     <div className="mx-auto max-w-[820px] bg-white px-10 py-8 text-gray-900 print:px-0 print:py-0">
@@ -246,7 +250,9 @@ function HistoriaPrintInner() {
                 <div key={e.id} className="break-inside-avoid rounded-md border border-gray-200 px-3 py-2 text-[11.5px]">
                   <div className="mb-1 flex items-center justify-between border-b border-gray-100 pb-1">
                     <span className="font-semibold text-gray-800">{formatDate(e.fecha)}{e.hora ? ` · ${e.hora}` : ""}</span>
-                    <span className="text-[10px] text-gray-500">{psi?.nombre ?? ""}{e.motivo ? ` · ${e.motivo}` : ""}</span>
+                    <span className="text-[10px] text-gray-500">
+                      {psi?.nombre ?? ""}{psi?.licencia ? ` · ${psi.licencia}` : ""}{e.motivo ? ` · ${e.motivo}` : ""}
+                    </span>
                   </div>
                   <p className="whitespace-pre-wrap text-gray-800">{e.observaciones}</p>
                   {e.acuerdos && <p className="mt-1 text-gray-600"><span className="font-medium">Acuerdos:</span> {e.acuerdos}</p>}
@@ -260,8 +266,12 @@ function HistoriaPrintInner() {
       </section>
 
       {/* Firma */}
-      <div className="mt-12 flex justify-between gap-8 break-inside-avoid text-[11px] text-gray-600">
-        <div className="flex-1 border-t border-gray-400 pt-1 text-center">Firma del profesional</div>
+      <div className="mt-14 flex justify-between gap-8 break-inside-avoid text-[11px] text-gray-600">
+        <div className="flex-1 border-t border-gray-400 pt-1 text-center">
+          <p className="font-medium text-gray-800">{profesional?.nombre ?? "Firma del profesional"}</p>
+          {profesional?.licencia && <p className="text-[10px] text-gray-500">{profesional.licencia}</p>}
+          <p className="text-[10px] text-gray-500">Firma del profesional</p>
+        </div>
         <div className="flex-1 border-t border-gray-400 pt-1 text-center">Sello del centro</div>
       </div>
 

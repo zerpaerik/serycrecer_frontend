@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LogOut, UserCog } from "lucide-react";
+import { LogOut, UserCog, UserRoundCog } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,11 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+
+        <DropdownMenuItem onClick={() => router.push("/mi-cuenta")}>
+          <UserRoundCog className="h-4 w-4" />
+          Mi cuenta
+        </DropdownMenuItem>
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

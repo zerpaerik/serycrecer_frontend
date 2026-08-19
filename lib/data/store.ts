@@ -12,6 +12,7 @@ import type {
   EstadoCita,
   EvaluacionNeuro,
   EvolucionSesion,
+  Gasto,
   ObjetivoTrabajo,
   Paciente,
   Pago,
@@ -36,7 +37,7 @@ const CONFIG_DEFAULT: ConsultorioConfig = { nombre: "Ser y Crecer", moneda: "PEN
 type CollKey =
   | "pacientes" | "psicologos" | "servicios" | "paquetes" | "paquetesPaciente"
   | "citas" | "atenciones" | "evaluaciones" | "evoluciones" | "usuarios"
-  | "disponibilidad" | "config";
+  | "disponibilidad" | "gastos" | "config";
 
 interface DbState {
   hydrated: boolean;
@@ -51,6 +52,7 @@ interface DbState {
   evoluciones: EvolucionSesion[];
   usuarios: Usuario[];
   disponibilidad: Disponibilidad[];
+  gastos: Gasto[];
   config: ConsultorioConfig;
 
   loadAll: () => Promise<void>;
@@ -101,6 +103,10 @@ interface DbState {
   addDisponibilidad: (data: Omit<Disponibilidad, "id">) => Promise<Disponibilidad>;
   deleteDisponibilidad: (id: string) => Promise<void>;
 
+  addGasto: (data: Omit<Gasto, "id" | "usuarioNombre">) => Promise<Gasto>;
+  updateGasto: (id: string, data: Partial<Gasto>) => Promise<void>;
+  deleteGasto: (id: string) => Promise<void>;
+
   setHydrated: () => void;
 }
 
@@ -120,6 +126,7 @@ async function fetchColl(key: CollKey): Promise<unknown> {
     case "evoluciones": return (await api.get<unknown[]>("/evoluciones")).map(M.mapEvolucion);
     case "usuarios": return (await api.get<unknown[]>("/usuarios")).map(M.mapUsuario);
     case "disponibilidad": return (await api.get<unknown[]>("/disponibilidad")).map(M.mapDisponibilidad);
+    case "gastos": return (await api.get<unknown[]>("/gastos")).map(M.mapGasto);
     case "config": return M.mapConfig(await api.get("/config"));
   }
 }
@@ -171,12 +178,13 @@ export const useDb = create<DbState>()((set, get) => {
     evoluciones: [],
     usuarios: [],
     disponibilidad: [],
+    gastos: [],
     config: CONFIG_DEFAULT,
 
     loadAll: async () => {
       const keys: CollKey[] = [
         "pacientes", "psicologos", "servicios", "paquetes", "paquetesPaciente",
-        "citas", "atenciones", "evaluaciones", "evoluciones", "usuarios", "disponibilidad", "config",
+        "citas", "atenciones", "evaluaciones", "evoluciones", "usuarios", "disponibilidad", "gastos", "config",
       ];
       // allSettled: un fallo transitorio en una colección no tumba el resto.
       const results = await Promise.allSettled(keys.map((k) => fetchColl(k)));
@@ -397,6 +405,26 @@ export const useDb = create<DbState>()((set, get) => {
     deleteDisponibilidad: async (id) => {
       await api.del(`/disponibilidad/${id}`);
       set((s) => ({ disponibilidad: s.disponibilidad.filter((x) => x.id !== id) }));
+    },
+
+    addGasto: async (data) => {
+      const g = M.mapGasto(await api.post("/gastos", {
+        fecha: data.fecha, monto: data.monto, categoria: data.categoria,
+        metodo: data.metodo, descripcion: data.descripcion,
+      }));
+      set((s) => ({ gastos: [g, ...s.gastos] }));
+      return g;
+    },
+    updateGasto: async (id, data) => {
+      const g = M.mapGasto(await api.patch(`/gastos/${id}`, {
+        fecha: data.fecha, monto: data.monto, categoria: data.categoria,
+        metodo: data.metodo, descripcion: data.descripcion,
+      }));
+      set((s) => ({ gastos: s.gastos.map((x) => (x.id === id ? g : x)) }));
+    },
+    deleteGasto: async (id) => {
+      await api.del(`/gastos/${id}`);
+      set((s) => ({ gastos: s.gastos.filter((x) => x.id !== id) }));
     },
 
     setHydrated: () => set({ hydrated: true }),

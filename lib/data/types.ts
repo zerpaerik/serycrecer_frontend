@@ -34,6 +34,7 @@ export interface Psicologo {
   email?: string;
   telefono?: string;
   horario?: string;
+  licencia?: string; // N° de colegiatura / licencia profesional
 }
 
 /** Franja de disponibilidad semanal recurrente de un psicólogo. */
@@ -140,6 +141,28 @@ export const METODOS_PAGO: MetodoPago[] = [
   "Tarjeta",
   "Transferencia",
 ];
+
+/** Gasto / egreso del centro (se descuenta de la caja del día). */
+export interface Gasto {
+  id: string;
+  fecha: string; // ISO "YYYY-MM-DD"
+  monto: number;
+  categoria: string;
+  metodo: MetodoPago;
+  descripcion?: string;
+  usuarioNombre?: string;
+}
+
+export const CATEGORIAS_GASTO = [
+  "Operativo",
+  "Insumos",
+  "Servicios",
+  "Alquiler",
+  "Sueldos",
+  "Marketing",
+  "Impuestos",
+  "Otros",
+] as const;
 
 /** Estado de pago derivado de una atención. */
 export type EstadoPago = "Pagado" | "Parcial" | "Pendiente";

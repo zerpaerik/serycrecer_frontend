@@ -14,6 +14,7 @@ import { AtencionEditDialog } from "@/components/atenciones/atencion-edit-dialog
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDb, pacienteNombre } from "@/lib/data/store";
+import { useAuth } from "@/lib/auth/store";
 import { useDbReady } from "@/lib/data/hooks";
 import { atnEstado, atnPagado, atnSaldo, atnTotal } from "@/lib/data/atenciones";
 import { formatDate, formatPEN } from "@/lib/format";
@@ -27,6 +28,8 @@ export default function AtencionDetallePage() {
   const pacientes = useDb((s) => s.pacientes);
   const psicologos = useDb((s) => s.psicologos);
   const anularAtencion = useDb((s) => s.anularAtencion);
+  const roleId = useAuth((s) => s.session?.roleId ?? 1);
+  const puedeAnular = roleId !== 3; // Recepción no puede anular/eliminar atenciones.
 
   const [cobroOpen, setCobroOpen] = React.useState(false);
   const [anularOpen, setAnularOpen] = React.useState(false);
@@ -77,9 +80,11 @@ export default function AtencionDetallePage() {
               <Button variant="outline" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4" />Editar
               </Button>
-              <Button variant="outline" className="text-destructive" onClick={() => setAnularOpen(true)}>
-                <Ban className="h-4 w-4" />Anular
-              </Button>
+              {puedeAnular && (
+                <Button variant="outline" className="text-destructive" onClick={() => setAnularOpen(true)}>
+                  <Ban className="h-4 w-4" />Anular
+                </Button>
+              )}
             </>
           )}
         </div>

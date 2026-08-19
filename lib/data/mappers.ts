@@ -11,6 +11,7 @@ import type {
   Disponibilidad,
   EvaluacionNeuro,
   EvolucionSesion,
+  Gasto,
   Pago,
   Paciente,
   Paquete,
@@ -56,6 +57,19 @@ export function mapPsicologo(r: any): Psicologo {
     email: r.email ?? undefined,
     telefono: r.telefono ?? undefined,
     horario: r.horario ?? undefined,
+    licencia: r.licencia ?? undefined,
+  };
+}
+
+export function mapGasto(r: any): Gasto {
+  return {
+    id: s(r.id),
+    fecha: r.fecha ?? "",
+    monto: n(r.monto),
+    categoria: r.categoria ?? "Operativo",
+    metodo: r.metodo ?? "Efectivo",
+    descripcion: r.descripcion ?? undefined,
+    usuarioNombre: r.usuario?.nombre ?? undefined,
   };
 }
 
