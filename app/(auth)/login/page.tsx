@@ -14,8 +14,7 @@ import { Label } from "@/components/ui/label";
 import { LoginArtwork } from "@/components/brand/login-artwork";
 import { LogoFull } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { useAuth, DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/auth/store";
-import { getRole } from "@/lib/auth/roles";
+import { useAuth } from "@/lib/auth/store";
 
 const schema = z.object({
   email: z.string().min(1, "Ingresa tu correo").email("Correo no válido"),
@@ -37,7 +36,6 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
@@ -56,11 +54,6 @@ export default function LoginPage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo iniciar sesión");
     }
-  }
-
-  function fillDemo(email: string) {
-    setValue("email", email, { shouldValidate: true });
-    setValue("password", DEMO_PASSWORD, { shouldValidate: true });
   }
 
   return (
@@ -146,51 +139,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          {/* Accesos rápidos de demostración */}
-          <div className="mt-8">
-            <div className="flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Acceso de demostración
-              </span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-
-            <div className="mt-4 grid gap-2">
-              {DEMO_ACCOUNTS.map((u) => {
-                const role = getRole(u.roleId);
-                return (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => fillDemo(u.email)}
-                    className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition-colors hover:border-brand/40 hover:bg-accent"
-                  >
-                    <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: role.color }}
-                    >
-                      {role.short.slice(0, 1)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{u.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {role.name} · {u.email}
-                      </span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Toca una cuenta para autocompletar. Contraseña:{" "}
-              <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">
-                {DEMO_PASSWORD}
-              </code>
-            </p>
-          </div>
         </div>
       </div>
     </div>
