@@ -33,6 +33,7 @@ const schema = z.object({
   email: z.string().email("Correo no válido"),
   roleId: z.string().min(1, "Selecciona un rol"),
   estado: z.enum(["Activo", "Inactivo"]),
+  password: z.string().optional(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -55,6 +56,7 @@ export function UsuarioFormDialog({
       email: usuario?.email ?? "",
       roleId: String(usuario?.roleId ?? 3),
       estado: usuario?.estado ?? "Activo",
+      password: "",
     }),
     [usuario],
   );
@@ -64,6 +66,7 @@ export function UsuarioFormDialog({
     handleSubmit,
     control,
     reset,
+    setError,
     formState: { errors },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: defaults() });
 
@@ -71,21 +74,36 @@ export function UsuarioFormDialog({
     if (open) reset(defaults());
   }, [open, defaults, reset]);
 
-  function onSubmit(v: Values) {
-    const payload = {
+  async function onSubmit(v: Values) {
+    const pass = v.password?.trim() ?? "";
+    // Contraseña: requerida al crear; al editar, en blanco = no cambiarla.
+    if (!isEdit && pass.length < 4) {
+      setError("password", { message: "Mínimo 4 caracteres" });
+      return;
+    }
+    if (isEdit && pass && pass.length < 4) {
+      setError("password", { message: "Mínimo 4 caracteres" });
+      return;
+    }
+
+    const base = {
       nombre: v.nombre,
       email: v.email,
       roleId: Number(v.roleId) as RoleId,
       estado: v.estado,
     };
-    if (isEdit && usuario) {
-      updateUsuario(usuario.id, payload);
-      toast.success("Usuario actualizado");
-    } else {
-      addUsuario(payload);
-      toast.success("Usuario creado");
+    try {
+      if (isEdit && usuario) {
+        await updateUsuario(usuario.id, pass ? { ...base, password: pass } : base);
+        toast.success("Usuario actualizado");
+      } else {
+        await addUsuario({ ...base, password: pass });
+        toast.success("Usuario creado");
+      }
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo guardar el usuario");
     }
-    onOpenChange(false);
   }
 
   return (
@@ -147,6 +165,23 @@ export function UsuarioFormDialog({
                 )}
               />
             </div>
+          </div>
+          <div>
+            <Label className="mb-1.5 block">
+              {isEdit ? "Nueva contraseña" : "Contraseña"}
+            </Label>
+            <Input
+              type="password"
+              autoComplete="new-password"
+              placeholder={isEdit ? "Dejar en blanco para no cambiarla" : "Mínimo 4 caracteres"}
+              {...register("password")}
+            />
+            {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>}
+            {isEdit && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Solo se actualiza si escribes una nueva.
+              </p>
+            )}
           </div>
 
           <DialogFooter>

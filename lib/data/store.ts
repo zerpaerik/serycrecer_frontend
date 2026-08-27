@@ -309,7 +309,7 @@ export const useDb = create<DbState>()((set, get) => {
     addUsuario: async (data) => {
       const u = M.mapUsuario(await api.post("/usuarios", {
         nombre: data.nombre, email: data.email, roleId: data.roleId,
-        estado: data.estado, password: data.password ?? "demo123",
+        estado: data.estado, password: data.password,
       }));
       set((s) => ({ usuarios: [u, ...s.usuarios] }));
       return u;
