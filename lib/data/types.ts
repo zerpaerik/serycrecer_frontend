@@ -35,6 +35,7 @@ export interface Psicologo {
   telefono?: string;
   horario?: string;
   licencia?: string; // N° de colegiatura / licencia profesional
+  estado?: "Activo" | "Inactivo";
 }
 
 /** Franja de disponibilidad semanal recurrente de un psicólogo. */
@@ -151,6 +152,31 @@ export interface Gasto {
   metodo: MetodoPago;
   descripcion?: string;
   usuarioNombre?: string;
+}
+
+/** Turno de caja: una jornada puede tener varios (mañana / tarde). */
+export interface TurnoCaja {
+  id: string;
+  fecha: string; // ISO "YYYY-MM-DD"
+  nombre: string;
+  estado: "Abierto" | "Cerrado";
+  montoInicial: number;
+  montoContado: number | null;
+  abiertoEn: string;
+  cerradoEn?: string | null;
+  observaciones?: string;
+  usuarioApertura?: string;
+  usuarioCierre?: string;
+  /** Totales calculados por el backend para el turno. */
+  total: number;
+  count: number;
+  porMetodo: Record<string, number>;
+  totalGastos: number;
+  neto: number;
+  efectivoCobrado: number;
+  efectivoGastado: number;
+  esperadoEfectivo: number;
+  diferencia: number | null;
 }
 
 export const CATEGORIAS_GASTO = [

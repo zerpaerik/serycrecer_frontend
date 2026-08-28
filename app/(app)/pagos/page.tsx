@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { BadgeCheck, Banknote, CreditCard, Landmark, Printer, Receipt, Smartphone, Wallet } from "lucide-react";
+import { BadgeCheck, Banknote, CreditCard, Landmark, LockKeyhole, Printer, Receipt, Smartphone, Unlock, Wallet } from "lucide-react";
 
 import { RoleGuard } from "@/components/shared/role-guard";
+import { AbrirTurnoDialog, CerrarTurnoDialog } from "@/components/caja/turno-dialogs";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { KpiCard } from "@/components/dashboard/kpi-card";
@@ -30,8 +31,18 @@ function PagosInner() {
   const atenciones = useDb((s) => s.atenciones);
   const pacientes = useDb((s) => s.pacientes);
   const gastos = useDb((s) => s.gastos);
+  const turnoActual = useDb((s) => s.turnoActual);
+  const turnos = useDb((s) => s.turnos);
+  const refreshCaja = useDb((s) => s.refreshCaja);
 
   const [fecha, setFecha] = React.useState(hoyIso());
+  const [abrirOpen, setAbrirOpen] = React.useState(false);
+  const [cerrarOpen, setCerrarOpen] = React.useState(false);
+
+  // Turnos de la fecha seleccionada (y el turno abierto, si lo hay).
+  React.useEffect(() => {
+    refreshCaja(fecha).catch(() => {});
+  }, [fecha, refreshCaja]);
 
   // Todos los pagos del día (de atenciones no anuladas).
   const cobros = React.useMemo(() => {
@@ -67,12 +78,23 @@ function PagosInner() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader title="Pagos y Caja" description="Caja diaria del centro">
+        {turnoActual ? (
+          <Button className="bg-brand-gradient text-white" onClick={() => setCerrarOpen(true)}>
+            <LockKeyhole className="h-4 w-4" />
+            Cerrar caja
+          </Button>
+        ) : (
+          <Button className="bg-brand-gradient text-white" onClick={() => setAbrirOpen(true)}>
+            <Unlock className="h-4 w-4" />
+            Abrir caja
+          </Button>
+        )}
         <Button
           variant="outline"
           onClick={() => window.open(`/cierre-caja?fecha=${fecha}`, "_blank")}
         >
           <Printer className="h-4 w-4" />
-          Cierre de caja (PDF)
+          Cierre del día (PDF)
         </Button>
       </PageHeader>
 
@@ -85,6 +107,78 @@ function PagosInner() {
           <button className="text-sm font-medium text-brand hover:underline" onClick={() => setFecha(hoyIso())}>Ir a hoy</button>
         )}
       </div>
+
+      {/* Turnos de caja del día (una jornada puede tener varios) */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Turnos de caja</CardTitle>
+          {turnoActual ? (
+            <span className="rounded-full bg-success/12 px-2.5 py-0.5 text-xs font-medium text-success">
+              {turnoActual.nombre} abierto
+            </span>
+          ) : (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              Caja cerrada
+            </span>
+          )}
+        </CardHeader>
+        <CardContent className="p-0">
+          {turnos.length === 0 ? (
+            <p className="px-6 py-6 text-center text-sm text-muted-foreground">
+              No se abrió caja este día.
+            </p>
+          ) : (
+            <div className="divide-y">
+              {turnos.map((t) => (
+                <div key={t.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      {t.nombre}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          t.estado === "Abierto" ? "bg-success/12 text-success" : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {t.estado}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Inicial {formatPEN(t.montoInicial)} · {t.count} pagos
+                      {t.usuarioApertura ? ` · abrió ${t.usuarioApertura}` : ""}
+                      {t.usuarioCierre ? ` · cerró ${t.usuarioCierre}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p className="font-semibold tabular-nums">{formatPEN(t.neto)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.estado === "Cerrado" && t.diferencia !== null ? (
+                        t.diferencia === 0 ? (
+                          <span className="text-success">Cuadró</span>
+                        ) : (
+                          <span className={t.diferencia < 0 ? "text-destructive" : "text-warning"}>
+                            {t.diferencia < 0 ? "Faltó " : "Sobró "}
+                            {formatPEN(Math.abs(t.diferencia))}
+                          </span>
+                        )
+                      ) : (
+                        `Esperado ${formatPEN(t.esperadoEfectivo)}`
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(`/cierre-caja?turnoId=${t.id}`, "_blank")}
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Imprimir
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {!ready ? (
         <Skeleton className="h-40 w-full rounded-xl" />
@@ -162,6 +256,16 @@ function PagosInner() {
             </Card>
           </div>
         </>
+      )}
+
+      <AbrirTurnoDialog open={abrirOpen} onOpenChange={setAbrirOpen} />
+      {turnoActual && (
+        <CerrarTurnoDialog
+          key={turnoActual.id + turnoActual.esperadoEfectivo}
+          open={cerrarOpen}
+          onOpenChange={setCerrarOpen}
+          turno={turnoActual}
+        />
       )}
     </div>
   );

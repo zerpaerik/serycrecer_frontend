@@ -1,12 +1,16 @@
 "use client";
 
+import * as React from "react";
 import { Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth/store";
 import { getRole } from "@/lib/auth/roles";
-import { dashboardForRole } from "@/lib/data/dashboard";
+import { buildDashboard } from "@/lib/data/dashboard";
+import { useDb } from "@/lib/data/store";
+import { useDbReady } from "@/lib/data/hooks";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { AreaTrend, DonutBreakdown } from "@/components/dashboard/charts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 const ESTADO_VARIANT: Record<string, string> = {
@@ -27,8 +31,28 @@ export default function DashboardPage() {
   const session = useAuth((s) => s.session);
   const roleId = session?.roleId ?? 1;
   const role = getRole(roleId);
-  const data = dashboardForRole(roleId);
   const firstName = nombreDePila(session?.user.name ?? "");
+
+  const ready = useDbReady();
+  const pacientes = useDb((s) => s.pacientes);
+  const psicologos = useDb((s) => s.psicologos);
+  const servicios = useDb((s) => s.servicios);
+  const citas = useDb((s) => s.citas);
+  const atenciones = useDb((s) => s.atenciones);
+
+  const data = React.useMemo(
+    () =>
+      buildDashboard({
+        roleId,
+        psicologoId: session?.user.psicologoId,
+        pacientes,
+        psicologos,
+        servicios,
+        citas,
+        atenciones,
+      }),
+    [roleId, session?.user.psicologoId, pacientes, psicologos, servicios, citas, atenciones],
+  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -54,9 +78,9 @@ export default function DashboardPage() {
 
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {data.kpis.map((k) => (
-          <KpiCard key={k.label} kpi={k} />
-        ))}
+        {!ready
+          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-xl" />)
+          : data.kpis.map((k) => <KpiCard key={k.label} kpi={k} />)}
       </div>
 
       {/* Gráficos */}
@@ -89,6 +113,11 @@ export default function DashboardPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
+          {data.citas.length === 0 && (
+            <p className="px-6 py-8 text-center text-sm text-muted-foreground">
+              {ready ? "No hay citas programadas para hoy." : "Cargando…"}
+            </p>
+          )}
           <div className="divide-y">
             {data.citas.map((c) => (
               <div

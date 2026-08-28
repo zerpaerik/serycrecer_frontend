@@ -185,7 +185,7 @@ function RegistroInner() {
             <Select value={psicologoId} onValueChange={setPsicologoId}>
               <SelectTrigger className="w-full"><SelectValue placeholder="Selecciona un psicólogo" /></SelectTrigger>
               <SelectContent>
-                {psicologos.map((p) => (<SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>))}
+                {psicologos.filter((p) => p.estado !== "Inactivo").map((p) => (<SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>))}
               </SelectContent>
             </Select>
           </Step>

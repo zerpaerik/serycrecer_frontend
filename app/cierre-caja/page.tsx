@@ -15,6 +15,16 @@ interface CajaResp {
   neto?: number;
   pagos: { id: string; monto: number; metodo: string; tipo: string; paciente: string }[];
   gastos?: { id: string; monto: number; categoria: string; metodo: string; descripcion: string }[];
+  // Presentes solo cuando se imprime un turno concreto.
+  nombre?: string;
+  estado?: string;
+  montoInicial?: number;
+  montoContado?: number | null;
+  esperadoEfectivo?: number;
+  diferencia?: number | null;
+  observaciones?: string;
+  usuarioApertura?: { nombre: string };
+  usuarioCierre?: { nombre: string };
 }
 interface ConfigResp {
   nombre?: string;
@@ -28,6 +38,8 @@ function hoyIso() {
 
 function CierreCajaInner() {
   const params = useSearchParams();
+  // Con ?turnoId= imprime el cierre de ese turno; si no, el consolidado del día.
+  const turnoId = params.get("turnoId");
   const fecha = params.get("fecha") || hoyIso();
   const [caja, setCaja] = React.useState<CajaResp | null>(null);
   const [config, setConfig] = React.useState<ConfigResp>({});
@@ -36,7 +48,7 @@ function CierreCajaInner() {
   React.useEffect(() => {
     let activo = true;
     Promise.all([
-      api.get<CajaResp>(`/caja?fecha=${fecha}`),
+      api.get<CajaResp>(turnoId ? `/caja/turnos/${turnoId}` : `/caja?fecha=${fecha}`),
       api.get<ConfigResp>("/config").catch(() => ({})),
     ])
       .then(([c, cfg]) => {
@@ -50,7 +62,7 @@ function CierreCajaInner() {
     return () => {
       activo = false;
     };
-  }, [fecha]);
+  }, [fecha, turnoId]);
 
   if (error) {
     return <div className="mx-auto max-w-lg p-10 text-center text-sm text-red-600">Error: {error}</div>;
@@ -76,8 +88,17 @@ function CierreCajaInner() {
         <h1 className="text-xl font-extrabold text-teal-700">{config.nombre ?? "Ser y Crecer"}</h1>
         {config.ruc && <p className="text-xs text-gray-500">RUC {config.ruc}</p>}
         {config.direccion && <p className="text-xs text-gray-500">{config.direccion}</p>}
-        <h2 className="mt-3 text-lg font-bold">Cierre de caja</h2>
-        <p className="text-sm text-gray-600">{formatDateLong(fecha)}</p>
+        <h2 className="mt-3 text-lg font-bold">
+          {caja.nombre ? `Cierre de caja · ${caja.nombre}` : "Cierre de caja"}
+        </h2>
+        <p className="text-sm text-gray-600">{formatDateLong(caja.fecha || fecha)}</p>
+        {(caja.usuarioApertura || caja.usuarioCierre) && (
+          <p className="text-xs text-gray-500">
+            {caja.usuarioApertura ? `Abrió: ${caja.usuarioApertura.nombre}` : ""}
+            {caja.usuarioApertura && caja.usuarioCierre ? " · " : ""}
+            {caja.usuarioCierre ? `Cerró: ${caja.usuarioCierre.nombre}` : ""}
+          </p>
+        )}
       </div>
 
       {/* Resumen */}
@@ -173,12 +194,58 @@ function CierreCajaInner() {
         </>
       )}
 
+      {/* Cuadre del efectivo (solo al imprimir un turno) */}
+      {caja.esperadoEfectivo !== undefined && (
+        <>
+          <h3 className="mt-6 mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">Cuadre de efectivo</h3>
+          <table className="w-full text-sm">
+            <tbody>
+              <tr className="border-b">
+                <td className="py-1.5">Efectivo inicial</td>
+                <td className="py-1.5 text-right tabular-nums">{formatPEN(caja.montoInicial ?? 0)}</td>
+              </tr>
+              <tr className="border-b">
+                <td className="py-1.5">Efectivo esperado al cierre</td>
+                <td className="py-1.5 text-right tabular-nums">{formatPEN(caja.esperadoEfectivo)}</td>
+              </tr>
+              <tr className="border-b">
+                <td className="py-1.5">Efectivo contado</td>
+                <td className="py-1.5 text-right tabular-nums">
+                  {caja.montoContado == null ? "—" : formatPEN(caja.montoContado)}
+                </td>
+              </tr>
+              <tr className="font-bold">
+                <td className="py-2">Diferencia</td>
+                <td
+                  className={`py-2 text-right tabular-nums ${
+                    (caja.diferencia ?? 0) < 0 ? "text-red-600" : (caja.diferencia ?? 0) > 0 ? "text-orange-600" : ""
+                  }`}
+                >
+                  {caja.diferencia == null ? "—" : formatPEN(caja.diferencia)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          {caja.observaciones && (
+            <p className="mt-2 text-sm text-gray-600">
+              <span className="font-medium">Observaciones:</span> {caja.observaciones}
+            </p>
+          )}
+        </>
+      )}
+
       {/* Neto final */}
       <div className="mt-6 flex items-center justify-between rounded-lg border-2 border-teal-600 px-4 py-3">
         <span className="text-sm font-bold uppercase tracking-wide text-gray-700">Neto en caja</span>
         <span className={`text-xl font-extrabold ${(caja.neto ?? caja.total) < 0 ? "text-red-600" : "text-teal-700"}`}>
           {formatPEN(caja.neto ?? caja.total)}
         </span>
+      </div>
+
+      {/* Firma del responsable */}
+      <div className="mt-12 flex justify-between gap-8 text-xs text-gray-600">
+        <div className="flex-1 border-t border-gray-400 pt-1 text-center">Responsable de caja</div>
+        <div className="flex-1 border-t border-gray-400 pt-1 text-center">Visto bueno</div>
       </div>
 
       <p className="mt-8 text-center text-xs text-gray-400">

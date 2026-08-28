@@ -106,6 +106,7 @@ export function CitaFormDialog({
     control,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: defaults() });
 
@@ -163,7 +164,20 @@ export function CitaFormDialog({
               control={control}
               name="pacienteId"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={(v) => {
+                    field.onChange(v);
+                    // Si el paciente tiene un paquete con sesiones disponibles,
+                    // se preselecciona para que la sesión se descuente sola.
+                    if (!cita) {
+                      const suyo = paquetesPaciente.find(
+                        (pp) => pp.pacienteId === v && sesionesRestantes(pp, citas) > 0,
+                      );
+                      setValue("paquetePacienteId", suyo ? suyo.id : "none");
+                    }
+                  }}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona un paciente" />
                   </SelectTrigger>
@@ -189,11 +203,13 @@ export function CitaFormDialog({
                     <SelectValue placeholder="Selecciona un psicólogo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {psicologos.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.nombre}
-                      </SelectItem>
-                    ))}
+                    {psicologos
+                      .filter((p) => p.estado !== "Inactivo" || p.id === cita?.psicologoId)
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nombre}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               )}

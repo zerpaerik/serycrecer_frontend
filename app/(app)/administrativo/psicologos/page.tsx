@@ -3,7 +3,7 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, Plus, Stethoscope, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus, RotateCcw, Stethoscope, Trash2 } from "lucide-react";
 
 import { RoleGuard } from "@/components/shared/role-guard";
 import { PageHeader } from "@/components/shared/page-header";
@@ -30,6 +30,7 @@ function PsicologosInner() {
   const ready = useDbReady();
   const psicologos = useDb((s) => s.psicologos);
   const deletePsicologo = useDb((s) => s.deletePsicologo);
+  const reactivarPsicologo = useDb((s) => s.reactivarPsicologo);
 
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<Psicologo | undefined>();
@@ -50,8 +51,18 @@ function PsicologosInner() {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate font-medium">{p.nombre}</p>
-                <p className="truncate text-xs text-muted-foreground">{p.especialidad}</p>
+                <p className="flex items-center gap-2 truncate font-medium">
+                  {p.nombre}
+                  {p.estado === "Inactivo" && (
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      Inactivo
+                    </span>
+                  )}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {p.especialidad}
+                  {p.licencia ? ` · ${p.licencia}` : ""}
+                </p>
               </div>
             </div>
           );
@@ -98,10 +109,26 @@ function PsicologosInner() {
                     Editar
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onClick={() => setToDelete(p)}>
-                    <Trash2 className="h-4 w-4" />
-                    Eliminar
-                  </DropdownMenuItem>
+                  {p.estado === "Inactivo" ? (
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        try {
+                          await reactivarPsicologo(p.id);
+                          toast.success(`${p.nombre} fue reactivado`);
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "No se pudo reactivar");
+                        }
+                      }}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Reactivar
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem variant="destructive" onClick={() => setToDelete(p)}>
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -151,11 +178,20 @@ function PsicologosInner() {
         description={toDelete ? `¿Eliminar a ${toDelete.nombre}?` : undefined}
         confirmLabel="Eliminar"
         destructive
-        onConfirm={() => {
-          if (toDelete) {
-            deletePsicologo(toDelete.id);
-            toast.success("Psicólogo eliminado");
-            setToDelete(undefined);
+        onConfirm={async () => {
+          if (!toDelete) return;
+          const nombre = toDelete.nombre;
+          setToDelete(undefined);
+          try {
+            const res = await deletePsicologo(toDelete.id);
+            if (res?.desactivado) {
+              // Tiene historial: se desactiva para no perder citas ni atenciones.
+              toast.warning(res.mensaje ?? `${nombre} fue desactivado.`);
+            } else {
+              toast.success("Psicólogo eliminado");
+            }
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "No se pudo eliminar el psicólogo");
           }
         }}
       />

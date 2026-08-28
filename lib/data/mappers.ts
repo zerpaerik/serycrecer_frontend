@@ -18,6 +18,7 @@ import type {
   PaquetePaciente,
   Psicologo,
   Servicio,
+  TurnoCaja,
   Usuario,
 } from "./types";
 import type { RoleId } from "@/lib/auth/roles";
@@ -58,6 +59,7 @@ export function mapPsicologo(r: any): Psicologo {
     telefono: r.telefono ?? undefined,
     horario: r.horario ?? undefined,
     licencia: r.licencia ?? undefined,
+    estado: r.estado ?? "Activo",
   };
 }
 
@@ -70,6 +72,31 @@ export function mapGasto(r: any): Gasto {
     metodo: r.metodo ?? "Efectivo",
     descripcion: r.descripcion ?? undefined,
     usuarioNombre: r.usuario?.nombre ?? undefined,
+  };
+}
+
+export function mapTurnoCaja(r: any): TurnoCaja {
+  return {
+    id: s(r.id),
+    fecha: r.fecha ?? "",
+    nombre: r.nombre ?? "Turno",
+    estado: r.estado === "Cerrado" ? "Cerrado" : "Abierto",
+    montoInicial: n(r.montoInicial),
+    montoContado: r.montoContado == null ? null : n(r.montoContado),
+    abiertoEn: r.abiertoEn ?? "",
+    cerradoEn: r.cerradoEn ?? null,
+    observaciones: r.observaciones ?? undefined,
+    usuarioApertura: r.usuarioApertura?.nombre ?? undefined,
+    usuarioCierre: r.usuarioCierre?.nombre ?? undefined,
+    total: n(r.total),
+    count: Number(r.count ?? 0),
+    porMetodo: r.porMetodo ?? {},
+    totalGastos: n(r.totalGastos),
+    neto: n(r.neto),
+    efectivoCobrado: n(r.efectivoCobrado),
+    efectivoGastado: n(r.efectivoGastado),
+    esperadoEfectivo: n(r.esperadoEfectivo),
+    diferencia: r.diferencia == null ? null : n(r.diferencia),
   };
 }
 

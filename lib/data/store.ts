@@ -20,6 +20,7 @@ import type {
   Psicologo,
   RespuestaValor,
   Servicio,
+  TurnoCaja,
   Usuario,
 } from "./types";
 
@@ -53,6 +54,10 @@ interface DbState {
   usuarios: Usuario[];
   disponibilidad: Disponibilidad[];
   gastos: Gasto[];
+  /** Turno de caja abierto ahora mismo (null si la caja está cerrada). */
+  turnoActual: TurnoCaja | null;
+  /** Turnos de la fecha consultada en Pagos y Caja. */
+  turnos: TurnoCaja[];
   config: ConsultorioConfig;
 
   loadAll: () => Promise<void>;
@@ -82,7 +87,9 @@ interface DbState {
 
   addPsicologo: (data: Omit<Psicologo, "id">) => Promise<Psicologo>;
   updatePsicologo: (id: string, data: Partial<Psicologo>) => Promise<void>;
-  deletePsicologo: (id: string) => Promise<void>;
+  /** Elimina o —si tiene historial— desactiva; devuelve lo que hizo el backend. */
+  deletePsicologo: (id: string) => Promise<{ deleted?: boolean; desactivado?: boolean; mensaje?: string }>;
+  reactivarPsicologo: (id: string) => Promise<void>;
 
   addServicio: (data: Omit<Servicio, "id">) => Promise<Servicio>;
   updateServicio: (id: string, data: Partial<Servicio>) => Promise<void>;
@@ -106,6 +113,11 @@ interface DbState {
   addGasto: (data: Omit<Gasto, "id" | "usuarioNombre">) => Promise<Gasto>;
   updateGasto: (id: string, data: Partial<Gasto>) => Promise<void>;
   deleteGasto: (id: string) => Promise<void>;
+
+  /** Carga el turno abierto y los turnos de la fecha indicada. */
+  refreshCaja: (fecha?: string) => Promise<void>;
+  abrirTurno: (data: { nombre?: string; montoInicial: number }) => Promise<TurnoCaja>;
+  cerrarTurno: (id: string, data: { montoContado?: number; observaciones?: string }) => Promise<TurnoCaja>;
 
   setHydrated: () => void;
 }
@@ -179,6 +191,8 @@ export const useDb = create<DbState>()((set, get) => {
     usuarios: [],
     disponibilidad: [],
     gastos: [],
+    turnoActual: null,
+    turnos: [],
     config: CONFIG_DEFAULT,
 
     loadAll: async () => {
@@ -334,8 +348,17 @@ export const useDb = create<DbState>()((set, get) => {
       set((s) => ({ psicologos: s.psicologos.map((x) => (x.id === id ? p : x)) }));
     },
     deletePsicologo: async (id) => {
-      await api.del(`/psicologos/${id}`);
-      set((s) => ({ psicologos: s.psicologos.filter((x) => x.id !== id) }));
+      // El backend desactiva (en vez de borrar) si el psicólogo tiene historial.
+      const res = await api.del<{ deleted?: boolean; desactivado?: boolean; mensaje?: string }>(
+        `/psicologos/${id}`,
+      );
+      if (res?.desactivado) await get().refresh(["psicologos"]);
+      else set((s) => ({ psicologos: s.psicologos.filter((x) => x.id !== id) }));
+      return res;
+    },
+    reactivarPsicologo: async (id) => {
+      await api.post(`/psicologos/${id}/reactivar`, {});
+      await get().refresh(["psicologos"]);
     },
 
     // ── Servicios ──
@@ -413,6 +436,7 @@ export const useDb = create<DbState>()((set, get) => {
         metodo: data.metodo, descripcion: data.descripcion,
       }));
       set((s) => ({ gastos: [g, ...s.gastos] }));
+      await get().refreshCaja(g.fecha);
       return g;
     },
     updateGasto: async (id, data) => {
@@ -425,6 +449,30 @@ export const useDb = create<DbState>()((set, get) => {
     deleteGasto: async (id) => {
       await api.del(`/gastos/${id}`);
       set((s) => ({ gastos: s.gastos.filter((x) => x.id !== id) }));
+      await get().refreshCaja();
+    },
+
+    refreshCaja: async (fecha) => {
+      const [actual, lista] = await Promise.all([
+        api.get<unknown>("/caja/turnos/actual").catch(() => null),
+        api
+          .get<unknown[]>(`/caja/turnos${fecha ? `?fecha=${fecha}` : ""}`)
+          .catch(() => [] as unknown[]),
+      ]);
+      set({
+        turnoActual: actual ? M.mapTurnoCaja(actual) : null,
+        turnos: (lista as unknown[]).map(M.mapTurnoCaja),
+      });
+    },
+    abrirTurno: async (data) => {
+      const t = M.mapTurnoCaja(await api.post("/caja/turnos/abrir", data));
+      await get().refreshCaja(t.fecha);
+      return t;
+    },
+    cerrarTurno: async (id, data) => {
+      const t = M.mapTurnoCaja(await api.post(`/caja/turnos/${id}/cerrar`, data));
+      await get().refreshCaja(t.fecha);
+      return t;
     },
 
     setHydrated: () => set({ hydrated: true }),
