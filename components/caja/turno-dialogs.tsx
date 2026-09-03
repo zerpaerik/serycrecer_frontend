@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/shared/money-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDb } from "@/lib/data/store";
 import { formatPEN } from "@/lib/format";
@@ -29,7 +30,7 @@ export function AbrirTurnoDialog({
 }) {
   const abrirTurno = useDb((s) => s.abrirTurno);
   const [nombre, setNombre] = React.useState("");
-  const [montoInicial, setMontoInicial] = React.useState("0");
+  const [montoInicial, setMontoInicial] = React.useState(0);
   const [guardando, setGuardando] = React.useState(false);
 
   async function abrir() {
@@ -37,7 +38,7 @@ export function AbrirTurnoDialog({
     try {
       const t = await abrirTurno({
         nombre: nombre.trim() || undefined,
-        montoInicial: Number(montoInicial) || 0,
+        montoInicial,
       });
       toast.success(`${t.nombre} abierto`);
       onOpenChange(false);
@@ -69,13 +70,7 @@ export function AbrirTurnoDialog({
           </div>
           <div>
             <Label className="mb-1.5 block">Efectivo inicial (S/)</Label>
-            <Input
-              type="number"
-              min={0}
-              step="0.01"
-              value={montoInicial}
-              onChange={(e) => setMontoInicial(e.target.value)}
-            />
+            <MoneyInput value={montoInicial} onValueChange={setMontoInicial} />
             <p className="mt-1 text-xs text-muted-foreground">
               Con cuánto sencillo empieza la caja este turno.
             </p>

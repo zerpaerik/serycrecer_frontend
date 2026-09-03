@@ -13,8 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/shared/money-input";
 import { cn } from "@/lib/utils";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { atnSaldo } from "@/lib/data/atenciones";
@@ -81,7 +81,7 @@ export function CobroDialog({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label className="mb-1.5 block">Monto a abonar (S/)</Label>
-            <Input type="number" min={0} max={saldo} step="0.5" value={monto} onChange={(e) => setMonto(Number(e.target.value))} />
+            <MoneyInput value={monto} onValueChange={setMonto} max={saldo} />
             <div className="mt-1.5 flex gap-2">
               <button type="button" className="text-xs font-medium text-brand hover:underline" onClick={() => setMonto(saldo)}>Saldo total</button>
               <button type="button" className="text-xs font-medium text-muted-foreground hover:underline" onClick={() => setMonto(Math.round((saldo / 2) * 100) / 100)}>Mitad</button>

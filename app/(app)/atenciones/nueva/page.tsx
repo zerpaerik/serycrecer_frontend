@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
+import { MoneyInput } from "@/components/shared/money-input";
 import { PatientSearch } from "@/components/atenciones/patient-search";
 import { ItemPicker, type CatalogItem } from "@/components/atenciones/item-picker";
 import { Button } from "@/components/ui/button";
@@ -204,9 +205,12 @@ function RegistroInner() {
                     <p className="truncate text-sm font-medium">{it.nombre}</p>
                     {it.tipo === "Paquete" && <p className="text-xs text-muted-foreground">{it.sesiones} sesiones</p>}
                   </div>
-                  <div className="relative w-28 shrink-0">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">S/</span>
-                    <Input type="number" min={0} step="0.5" value={it.monto} onChange={(e) => setMonto(it.uid, Number(e.target.value))} className="h-9 pl-7 text-right" />
+                  <div className="w-28 shrink-0">
+                    <MoneyInput
+                      value={it.monto}
+                      onValueChange={(m) => setMonto(it.uid, m)}
+                      className="h-9 text-right"
+                    />
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeItem(it.uid)} aria-label="Quitar">
                     <Trash2 className="h-4 w-4" />
@@ -227,12 +231,10 @@ function RegistroInner() {
             <div className="space-y-2">
               {pagos.map((pg, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">S/</span>
-                    <Input
-                      type="number" min={0} step="0.5" value={pg.monto}
-                      onChange={(e) => { touched.current = true; setPagos((p) => p.map((x, j) => (j === i ? { ...x, monto: Number(e.target.value) } : x))); }}
-                      className="pl-7"
+                  <div className="flex-1">
+                    <MoneyInput
+                      value={pg.monto}
+                      onValueChange={(monto) => { touched.current = true; setPagos((p) => p.map((x, j) => (j === i ? { ...x, monto } : x))); }}
                     />
                   </div>
                   <Select value={pg.metodo} onValueChange={(v) => { touched.current = true; setPagos((p) => p.map((x, j) => (j === i ? { ...x, metodo: v as MetodoPago } : x))); }}>

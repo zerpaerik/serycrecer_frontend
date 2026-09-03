@@ -94,12 +94,12 @@ export function ServicioFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="mb-1.5 block">Duración (min)</Label>
-              <Input type="number" min={5} step={5} {...register("duracionMin", { valueAsNumber: true })} />
+              <Input type="number" min={5} step={5} onFocus={(e) => e.currentTarget.select()} {...register("duracionMin", { valueAsNumber: true })} />
               {errors.duracionMin && <p className="mt-1 text-xs text-destructive">{errors.duracionMin.message}</p>}
             </div>
             <div>
               <Label className="mb-1.5 block">Precio (S/)</Label>
-              <Input type="number" min={0} step="0.5" {...register("precio", { valueAsNumber: true })} />
+              <Input type="number" min={0} step="0.5" onFocus={(e) => e.currentTarget.select()} {...register("precio", { valueAsNumber: true })} />
               {errors.precio && <p className="mt-1 text-xs text-destructive">{errors.precio.message}</p>}
             </div>
           </div>

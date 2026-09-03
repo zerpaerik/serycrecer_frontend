@@ -108,12 +108,12 @@ export function PaqueteFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="mb-1.5 block">N.º de sesiones</Label>
-              <Input type="number" min={1} step={1} {...register("sesiones", { valueAsNumber: true })} />
+              <Input type="number" min={1} step={1} onFocus={(e) => e.currentTarget.select()} {...register("sesiones", { valueAsNumber: true })} />
               {errors.sesiones && <p className="mt-1 text-xs text-destructive">{errors.sesiones.message}</p>}
             </div>
             <div>
               <Label className="mb-1.5 block">Precio total (S/)</Label>
-              <Input type="number" min={0} step="0.5" {...register("precio", { valueAsNumber: true })} />
+              <Input type="number" min={0} step="0.5" onFocus={(e) => e.currentTarget.select()} {...register("precio", { valueAsNumber: true })} />
               {errors.precio && <p className="mt-1 text-xs text-destructive">{errors.precio.message}</p>}
             </div>
           </div>

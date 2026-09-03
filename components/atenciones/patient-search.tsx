@@ -43,7 +43,8 @@ export function PatientSearch({
 
   // Alta rápida
   const [form, setForm] = React.useState({
-    nombres: "", apellidos: "", tipoDoc: "DNI" as TipoDoc, numDoc: "", sexo: "Femenino", telefono: "",
+    nombres: "", apellidos: "", tipoDoc: "DNI" as TipoDoc, numDoc: "",
+    sexo: "Femenino", telefono: "", fechaNacimiento: "",
   });
 
   if (value) {
@@ -120,12 +121,26 @@ export function PatientSearch({
               <Input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
             </div>
           </div>
+          <div>
+            <Label className="mb-1 block text-xs">Fecha de nacimiento</Label>
+            <Input
+              type="date"
+              max={new Date().toLocaleDateString("en-CA")}
+              value={form.fechaNacimiento}
+              onChange={(e) => setForm({ ...form, fechaNacimiento: e.target.value })}
+            />
+          </div>
         </div>
         <Button
           className="w-full bg-brand-gradient text-white"
           onClick={async () => {
             if (!form.nombres.trim() || !form.apellidos.trim() || form.numDoc.trim().length < 6) {
               toast.error("Completa nombres, apellidos y documento");
+              return;
+            }
+            // La edad se usa en la historia clínica, así que no se asume una fecha.
+            if (!form.fechaNacimiento) {
+              toast.error("Indica la fecha de nacimiento");
               return;
             }
             try {
@@ -135,7 +150,7 @@ export function PatientSearch({
                 nombres: form.nombres.trim(),
                 apellidos: form.apellidos.trim(),
                 sexo: form.sexo as Paciente["sexo"],
-                fechaNacimiento: "2000-01-01",
+                fechaNacimiento: form.fechaNacimiento,
                 telefono: form.telefono.trim(),
                 estado: "Activo",
               });

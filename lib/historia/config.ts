@@ -50,6 +50,20 @@ const TAMIZAJE: Section = {
   title: "Tamizaje",
   groups: [
     {
+      title: "Datos del paciente y la familia",
+      fields: [
+        t("dg_lugar_nacimiento", "Lugar de nacimiento"),
+        t("dg_procedencia", "Procedencia"),
+        t("dg_escolaridad", "Grado de escolaridad"),
+        t("dg_centro_estudios", "Colegio, nido o universidad", true),
+        t("dg_hermanos", "Número de hermanos y posición que ocupa", true),
+        t("dg_madre_nombre", "Nombre de la mamá"),
+        t("dg_madre_celular", "Celular de la mamá"),
+        t("dg_padre_nombre", "Nombre del papá"),
+        t("dg_padre_celular", "Celular del papá"),
+      ],
+    },
+    {
       title: "Tipo de servicio",
       fields: [
         b("srv_evaluacion", "Evaluación"),
