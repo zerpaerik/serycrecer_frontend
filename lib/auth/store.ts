@@ -3,10 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { api } from "@/lib/api/client";
-import { DEMO_USERS, demoUserForRole, type RoleId } from "./roles";
-
-/** Contraseña de las cuentas demo del backend. */
-export const DEMO_PASSWORD = "demo123";
+import type { RoleId } from "./roles";
 
 export interface SessionUser {
   id: string;
@@ -39,8 +36,6 @@ interface AuthState {
   session: Session | null;
   hydrated: boolean;
   loginWithCredentials: (email: string, password: string) => Promise<void>;
-  loginAsRole: (roleId: RoleId) => Promise<void>;
-  switchRole: (roleId: RoleId) => Promise<void>;
   refreshPerfil: () => Promise<SessionUser | null>;
   updatePerfil: (data: { nombre?: string; licencia?: string }) => Promise<void>;
   changePassword: (actual: string, nueva: string) => Promise<void>;
@@ -88,15 +83,6 @@ export const useAuth = create<AuthState>()(
         set({ session: { user, token: res.access_token, roleId: user.roleId } });
       },
 
-      loginAsRole: async (roleId) => {
-        const demo = demoUserForRole(roleId);
-        await get().loginWithCredentials(demo.email, DEMO_PASSWORD);
-      },
-
-      switchRole: async (roleId) => {
-        await get().loginAsRole(roleId);
-      },
-
       refreshPerfil: async () => {
         const sess = get().session;
         if (!sess) return null;
@@ -131,6 +117,3 @@ export const useAuth = create<AuthState>()(
     },
   ),
 );
-
-/** Lista de usuarios demo para los accesos rápidos del login. */
-export const DEMO_ACCOUNTS = DEMO_USERS;

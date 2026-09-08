@@ -15,16 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { useDbReady } from "@/lib/data/hooks";
-import { formatPEN } from "@/lib/format";
+import { formatPEN, hoyIso } from "@/lib/format";
 import { METODOS_PAGO, type MetodoPago } from "@/lib/data/types";
 
 const ICONO: Record<MetodoPago, typeof Wallet> = {
   Efectivo: Banknote, Yape: Smartphone, Plin: Smartphone, Tarjeta: CreditCard, Transferencia: Landmark,
 };
-
-function hoyIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function PagosInner() {
   const ready = useDbReady();

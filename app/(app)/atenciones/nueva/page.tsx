@@ -33,7 +33,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useDb } from "@/lib/data/store";
 import { atnSaldo, atnEstado, atnTotal } from "@/lib/data/atenciones";
-import { formatDate, formatPEN } from "@/lib/format";
+import { formatDate, formatPEN, hoyIso } from "@/lib/format";
 import { METODOS_PAGO, type MetodoPago } from "@/lib/data/types";
 
 interface LineItem extends CatalogItem {
@@ -42,10 +42,6 @@ interface LineItem extends CatalogItem {
 interface PagoLine {
   monto: number;
   metodo: MetodoPago;
-}
-
-function hoyIso() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /** Id efímero para líneas del formulario (no persiste). */

@@ -35,6 +35,7 @@ import {
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { useDbReady } from "@/lib/data/hooks";
 import type { Cita, EstadoCita } from "@/lib/data/types";
+import { hoyIso, shiftIso } from "@/lib/format";
 
 const WEEKDAY = new Intl.DateTimeFormat("es-PE", {
   weekday: "long",
@@ -43,14 +44,6 @@ const WEEKDAY = new Intl.DateTimeFormat("es-PE", {
   year: "numeric",
 });
 
-function hoyIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-function shiftIso(iso: string, days: number) {
-  const d = new Date(iso + "T12:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 function tituloFecha(iso: string) {
   const d = new Date(iso + "T12:00:00");
   const s = WEEKDAY.format(d);

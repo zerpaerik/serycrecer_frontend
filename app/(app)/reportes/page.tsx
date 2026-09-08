@@ -15,14 +15,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { useDbReady } from "@/lib/data/hooks";
 import { atnEstado, atnPagado, atnSaldo, atnTotal } from "@/lib/data/atenciones";
-import { formatPEN, formatPercent } from "@/lib/format";
+import { formatPEN, formatPercent, isoDesplazado } from "@/lib/format";
 import { exportCSV } from "@/lib/export/csv";
 
-function isoOffset(days: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 function ddmm(iso: string) {
   const [, m, d] = iso.split("-");
   return `${d}/${m}`;
@@ -54,8 +49,8 @@ function ReportesInner() {
   const psicologos = useDb((s) => s.psicologos);
   const servicios = useDb((s) => s.servicios);
 
-  const [desde, setDesde] = React.useState(isoOffset(-30));
-  const [hasta, setHasta] = React.useState(isoOffset(0));
+  const [desde, setDesde] = React.useState(isoDesplazado(-30));
+  const [hasta, setHasta] = React.useState(isoDesplazado(0));
 
   const inRango = React.useCallback((fecha: string) => fecha >= desde && fecha <= hasta, [desde, hasta]);
 
@@ -155,8 +150,8 @@ function ReportesInner() {
         <div><Label className="mb-1.5 block text-xs">Desde</Label><Input type="date" value={desde} max={hasta} onChange={(e) => setDesde(e.target.value)} className="w-44" /></div>
         <div><Label className="mb-1.5 block text-xs">Hasta</Label><Input type="date" value={hasta} min={desde} onChange={(e) => setHasta(e.target.value)} className="w-44" /></div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => { setDesde(isoOffset(-30)); setHasta(isoOffset(0)); }}>Últimos 30 días</Button>
-          <Button variant="ghost" size="sm" onClick={() => { setDesde(isoOffset(-365)); setHasta(isoOffset(0)); }}>Último año</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setDesde(isoDesplazado(-30)); setHasta(isoDesplazado(0)); }}>Últimos 30 días</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setDesde(isoDesplazado(-365)); setHasta(isoDesplazado(0)); }}>Último año</Button>
         </div>
       </div>
 

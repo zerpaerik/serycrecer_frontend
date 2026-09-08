@@ -73,6 +73,32 @@ export function calcAge(birth: string | Date): number {
   return age;
 }
 
+/**
+ * Zona horaria del centro. Las fechas del día (agenda, caja, atenciones) se
+ * calculan siempre en Lima: usar la hora UTC hacía que desde las 19:00 el
+ * sistema saltara al día siguiente, en pleno horario de atención.
+ */
+export const ZONA_HORARIA = "America/Lima";
+
+/** Fecha de hoy en Lima, formato "YYYY-MM-DD". */
+export function hoyIso(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: ZONA_HORARIA });
+}
+
+/** Fecha en Lima desplazada n días respecto de hoy ("YYYY-MM-DD"). */
+export function isoDesplazado(dias: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  return d.toLocaleDateString("en-CA", { timeZone: ZONA_HORARIA });
+}
+
+/** Mueve una fecha "YYYY-MM-DD" n días, sin que la zona horaria la corra. */
+export function shiftIso(iso: string, dias: number): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + dias);
+  return d.toLocaleDateString("en-CA");
+}
+
 /** Iniciales a partir de un nombre completo: "Ana María Pérez" -> "AP" */
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);

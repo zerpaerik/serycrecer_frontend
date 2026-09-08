@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { useDbReady } from "@/lib/data/hooks";
-import { formatPercent } from "@/lib/format";
+import { formatPercent, hoyIso, shiftIso } from "@/lib/format";
 import type { Cita } from "@/lib/data/types";
 
 const WEEKDAY = new Intl.DateTimeFormat("es-PE", {
@@ -28,14 +28,6 @@ const WEEKDAY = new Intl.DateTimeFormat("es-PE", {
   month: "long",
 });
 
-function hoyIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-function shiftIso(iso: string, days: number) {
-  const d = new Date(iso + "T12:00:00");
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 function tituloFecha(iso: string) {
   const s = WEEKDAY.format(new Date(iso + "T12:00:00"));
   return s.charAt(0).toUpperCase() + s.slice(1);

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Ban, HandCoins, Package, Pencil, Printer, Stethoscope } from "lucide-react";
+import { ArrowLeft, Ban, Download, HandCoins, Package, Pencil, Printer, Stethoscope } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { EstadoPagoBadge } from "@/components/shared/status-badge";
@@ -69,6 +69,10 @@ export default function AtencionDetallePage() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => window.open(`/ticket-atencion?id=${atencion.id}`, "_blank")}>
             <Printer className="h-4 w-4" />Ticket
+          </Button>
+          {/* Abre el ticket listo para descargar y enviar por WhatsApp. */}
+          <Button variant="outline" onClick={() => window.open(`/ticket-atencion?id=${atencion.id}&descargar=1`, "_blank")}>
+            <Download className="h-4 w-4" />Ticket PDF
           </Button>
           {!atencion.anulada && (
             <>

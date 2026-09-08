@@ -28,6 +28,7 @@ import {
 import { useDb } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth/store";
 import type { EvolucionSesion } from "@/lib/data/types";
+import { hoyIso } from "@/lib/format";
 
 const schema = z.object({
   psicologoId: z.string().min(1, "Selecciona un psicólogo"),
@@ -85,7 +86,7 @@ export function EvolucionDialog({
   const defaults = React.useCallback(
     (): Values => ({
       psicologoId: evolucion?.psicologoId ?? defaultPsicologo,
-      fecha: evolucion?.fecha ?? new Date().toISOString().slice(0, 10),
+      fecha: evolucion?.fecha ?? hoyIso(),
       hora: evolucion?.hora ?? "09:00",
       motivo: evolucion?.motivo ?? "",
       observaciones: evolucion?.observaciones ?? "",

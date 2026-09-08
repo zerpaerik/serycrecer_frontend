@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { sesionesRestantes } from "@/lib/data/atenciones";
-import { formatPEN } from "@/lib/format";
+import { formatPEN, hoyIso } from "@/lib/format";
 import type { Cita } from "@/lib/data/types";
 
 const schema = z.object({
@@ -92,7 +92,7 @@ export function CitaFormDialog({
       pacienteId: cita?.pacienteId ?? "",
       psicologoId: cita?.psicologoId ?? psicologoInicial ?? "",
       servicioId: cita?.servicioId ?? "",
-      fecha: cita?.fecha ?? fechaInicial ?? new Date().toISOString().slice(0, 10),
+      fecha: cita?.fecha ?? fechaInicial ?? hoyIso(),
       hora: cita?.hora ?? horaInicial ?? "09:00",
       paquetePacienteId: cita?.paquetePacienteId ?? "none",
       notas: cita?.notas ?? "",

@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { formatDate, formatPEN } from "@/lib/format";
+import type { TicketData } from "@/lib/pdf/ticket";
 
 const N = (v: unknown) => Number(v ?? 0);
 
@@ -31,9 +32,53 @@ interface ConfigResp {
 function TicketInner() {
   const params = useSearchParams();
   const id = params.get("id");
+  // Con ?descargar=1 se abre y baja el PDF directamente (sin diálogo de impresión).
+  const soloDescarga = params.get("descargar") === "1";
   const [atn, setAtn] = React.useState<AtnResp | null>(null);
   const [config, setConfig] = React.useState<ConfigResp>({});
   const [error, setError] = React.useState<string | null>(null);
+  const [ocupado, setOcupado] = React.useState(false);
+  // El menú de compartir del sistema solo existe en navegadores compatibles
+  // (sobre todo móviles); ahí es donde aparece WhatsApp.
+  const [puedeCompartir] = React.useState(
+    () => typeof navigator !== "undefined" && typeof navigator.canShare === "function",
+  );
+
+  async function construirPdf(t: TicketData, cfg: ConfigResp) {
+    const { generarTicketPdf, nombreArchivoTicket } = await import("@/lib/pdf/ticket");
+    const doc = await generarTicketPdf(t, cfg);
+    return { doc, nombre: nombreArchivoTicket(t) };
+  }
+
+  async function descargarPdf(t: TicketData, cfg: ConfigResp) {
+    setOcupado(true);
+    try {
+      const { doc, nombre } = await construirPdf(t, cfg);
+      doc.save(nombre);
+    } catch {
+      setError("No se pudo generar el PDF");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  /** Abre el menú de compartir del celular (ahí aparece WhatsApp). */
+  async function compartirPdf(t: TicketData, cfg: ConfigResp) {
+    setOcupado(true);
+    try {
+      const { doc, nombre } = await construirPdf(t, cfg);
+      const archivo = new File([doc.output("blob")], nombre, { type: "application/pdf" });
+      if (navigator.canShare?.({ files: [archivo] })) {
+        await navigator.share({ files: [archivo], title: nombre });
+      } else {
+        doc.save(nombre); // Sin soporte de compartir: se descarga.
+      }
+    } catch {
+      // El usuario puede cancelar el menú de compartir: no es un error.
+    } finally {
+      setOcupado(false);
+    }
+  }
 
   React.useEffect(() => {
     if (!id) return;
@@ -46,11 +91,11 @@ function TicketInner() {
         if (!activo) return;
         setAtn(a);
         setConfig(cfg as ConfigResp);
-        setTimeout(() => window.print(), 500);
+        if (!soloDescarga) setTimeout(() => window.print(), 500);
       })
       .catch((e) => activo && setError(e instanceof Error ? e.message : "Error"));
     return () => { activo = false; };
-  }, [id]);
+  }, [id, soloDescarga]);
 
   if (error) return <div className="p-6 text-center text-sm text-red-600">Error: {error}</div>;
   if (!atn) return <div className="p-6 text-center text-sm text-gray-500">Cargando ticket…</div>;
@@ -58,16 +103,47 @@ function TicketInner() {
   const metodos = [...new Set(atn.pagos.map((p) => p.metodo))].join(", ") || "—";
   const paciente = atn.paciente ? `${atn.paciente.nombres} ${atn.paciente.apellidos}` : "—";
 
+  const datosTicket = {
+    id: atn.id,
+    fecha: atn.fecha,
+    hora: atn.hora,
+    total: N(atn.total),
+    pagado: N(atn.pagado),
+    saldo: N(atn.saldo),
+    estado: atn.estado,
+    paciente,
+    documento: atn.paciente?.numDoc ? `${atn.paciente.tipoDoc ?? ""} ${atn.paciente.numDoc}`.trim() : undefined,
+    psicologo: atn.psicologo?.nombre,
+    items: atn.items.map((i) => ({ nombre: i.nombre, monto: N(i.monto) })),
+    metodos,
+  };
+
   return (
     <>
       {/* Formato ticketera térmica 80mm */}
       <style>{`@media print { @page { size: 80mm auto; margin: 3mm; } body { margin: 0; } }`}</style>
 
       <div className="mx-auto bg-white p-3 text-black" style={{ width: "80mm", maxWidth: "100%", fontFamily: "ui-monospace, monospace" }}>
-        <div className="mb-2 flex justify-center print:hidden">
+        <div className="mb-3 flex flex-wrap justify-center gap-2 print:hidden">
           <button onClick={() => window.print()} className="rounded bg-teal-600 px-3 py-1.5 text-xs font-medium text-white">
-            Imprimir ticket
+            Imprimir
           </button>
+          <button
+            onClick={() => descargarPdf(datosTicket, config)}
+            disabled={ocupado}
+            className="rounded border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 disabled:opacity-50"
+          >
+            {ocupado ? "Generando…" : "Descargar PDF"}
+          </button>
+          {puedeCompartir && (
+            <button
+              onClick={() => compartirPdf(datosTicket, config)}
+              disabled={ocupado}
+              className="rounded border border-teal-600 px-3 py-1.5 text-xs font-medium text-teal-700 disabled:opacity-50"
+            >
+              Compartir
+            </button>
+          )}
         </div>
 
         <div className="text-center">

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { LogOut, UserCog, UserRoundCog } from "lucide-react";
+import { LogOut, UserRoundCog } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -11,22 +11,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth/store";
-import { ROLES, getRole, type RoleId } from "@/lib/auth/roles";
+import { getRole } from "@/lib/auth/roles";
 import { initials } from "@/lib/format";
 
 export function UserMenu() {
   const router = useRouter();
   const session = useAuth((s) => s.session);
-  const switchRole = useAuth((s) => s.switchRole);
   const logout = useAuth((s) => s.logout);
 
   if (!session) return null;
@@ -76,37 +70,6 @@ export function UserMenu() {
           <UserRoundCog className="h-4 w-4" />
           Mi cuenta
         </DropdownMenuItem>
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <UserCog className="h-4 w-4" />
-            Cambiar rol (demo)
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56">
-            <DropdownMenuRadioGroup
-              value={String(session.roleId)}
-              onValueChange={async (v) => {
-                const id = Number(v) as RoleId;
-                try {
-                  await switchRole(id);
-                  toast.success(`Ahora ves el sistema como ${getRole(id).name}`);
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "No se pudo cambiar de rol");
-                }
-              }}
-            >
-              {ROLES.map((r) => (
-                <DropdownMenuRadioItem key={r.id} value={String(r.id)}>
-                  <span
-                    className="mr-1 inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: r.color }}
-                  />
-                  {r.name}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
 
         <DropdownMenuSeparator />
         <DropdownMenuItem

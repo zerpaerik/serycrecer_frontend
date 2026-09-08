@@ -18,7 +18,7 @@ import { MoneyInput } from "@/components/shared/money-input";
 import { cn } from "@/lib/utils";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { atnSaldo } from "@/lib/data/atenciones";
-import { formatPEN } from "@/lib/format";
+import { formatPEN, hoyIso } from "@/lib/format";
 import { METODOS_PAGO, type Atencion, type MetodoPago } from "@/lib/data/types";
 
 const ICONO: Record<MetodoPago, typeof Wallet> = {
@@ -28,10 +28,6 @@ const ICONO: Record<MetodoPago, typeof Wallet> = {
   Tarjeta: CreditCard,
   Transferencia: Landmark,
 };
-
-function hoyIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function CobroDialog({
   open,
