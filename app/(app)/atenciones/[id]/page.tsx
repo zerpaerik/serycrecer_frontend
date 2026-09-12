@@ -13,11 +13,68 @@ import { AnularDialog } from "@/components/atenciones/anular-dialog";
 import { AtencionEditDialog } from "@/components/atenciones/atencion-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDb, pacienteNombre } from "@/lib/data/store";
 import { useAuth } from "@/lib/auth/store";
 import { useDbReady } from "@/lib/data/hooks";
 import { atnEstado, atnPagado, atnSaldo, atnTotal } from "@/lib/data/atenciones";
 import { formatDate, formatPEN } from "@/lib/format";
+import { METODOS_PAGO, type MetodoPago, type Pago } from "@/lib/data/types";
+
+/**
+ * Método de pago corregible: si el cobro se registró con el método equivocado
+ * se cambia aquí, y el cuadre de caja del turno se recalcula solo.
+ */
+function MetodoPagoSelect({
+  atencionId,
+  pago,
+  editable,
+}: {
+  atencionId: string;
+  pago: Pago;
+  editable: boolean;
+}) {
+  const cambiarMetodoPago = useDb((s) => s.cambiarMetodoPago);
+  const [guardando, setGuardando] = React.useState(false);
+
+  if (!editable) {
+    return <span className="text-sm text-muted-foreground">{pago.metodo}</span>;
+  }
+
+  return (
+    <Select
+      value={pago.metodo}
+      disabled={guardando}
+      onValueChange={async (metodo) => {
+        if (metodo === pago.metodo) return;
+        setGuardando(true);
+        try {
+          await cambiarMetodoPago(atencionId, pago.id, metodo as MetodoPago);
+          toast.success(`Método actualizado a ${metodo}`);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "No se pudo cambiar el método");
+        } finally {
+          setGuardando(false);
+        }
+      }}
+    >
+      <SelectTrigger size="sm" className="w-40" aria-label="Método de pago">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {METODOS_PAGO.map((m) => (
+          <SelectItem key={m} value={m}>{m}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export default function AtencionDetallePage() {
   const params = useParams<{ id: string }>();
@@ -135,9 +192,16 @@ export default function AtencionDetallePage() {
           ) : (
             <div className="divide-y">
               {atencion.pagos.map((p) => (
-                <div key={p.id} className="flex items-center gap-4 px-6 py-3">
+                <div key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3">
                   <span className="w-24 shrink-0 text-sm text-muted-foreground">{formatDate(p.fecha)}</span>
-                  <span className="flex-1 text-sm">{p.tipo} · {p.metodo}</span>
+                  <span className="text-sm">{p.tipo}</span>
+                  <div className="flex-1">
+                    <MetodoPagoSelect
+                      atencionId={atencion.id}
+                      pago={p}
+                      editable={!atencion.anulada}
+                    />
+                  </div>
                   <span className="text-sm font-medium tabular-nums">{formatPEN(p.monto)}</span>
                 </div>
               ))}

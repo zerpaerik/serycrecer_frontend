@@ -13,6 +13,7 @@ import type {
   EvaluacionNeuro,
   EvolucionSesion,
   Gasto,
+  MetodoPago,
   ObjetivoTrabajo,
   Paciente,
   Pago,
@@ -75,6 +76,8 @@ interface DbState {
   addAtencion: (data: Omit<Atencion, "id" | "creadoEn">) => Promise<Atencion>;
   updateAtencion: (id: string, data: Partial<Atencion>) => Promise<void>;
   agregarPago: (atencionId: string, pago: Omit<Pago, "id">) => Promise<void>;
+  /** Corrige el método con que se registró un cobro (no cambia el monto). */
+  cambiarMetodoPago: (atencionId: string, pagoId: string, metodo: MetodoPago) => Promise<void>;
   anularAtencion: (id: string, motivo: string) => Promise<void>;
 
   addPaquete: (data: Omit<Paquete, "id">) => Promise<Paquete>;
@@ -298,6 +301,13 @@ export const useDb = create<DbState>()((set, get) => {
     agregarPago: async (atencionId, pago) => {
       await api.post(`/atenciones/${atencionId}/pagos`, { monto: pago.monto, metodo: pago.metodo });
       await get().refresh(["atenciones"]);
+      await get().refreshCaja();
+    },
+    cambiarMetodoPago: async (atencionId, pagoId, metodo) => {
+      await api.patch(`/atenciones/${atencionId}/pagos/${pagoId}`, { metodo });
+      await get().refresh(["atenciones"]);
+      // El método afecta el cuadre de efectivo del turno.
+      await get().refreshCaja();
     },
     anularAtencion: async (id, motivo) => {
       await api.post(`/atenciones/${id}/anular`, { motivo });
