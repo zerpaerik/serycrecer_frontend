@@ -29,6 +29,25 @@ interface ConfigResp {
   telefono?: string;
 }
 
+/** Línea divisoria de guiones, como en los tickets de caja. */
+function Separador() {
+  return <div className="border-t border-dashed border-black" />;
+}
+
+/**
+ * Concepto a la izquierda e importe a la derecha. Se usa flex (y no una tabla)
+ * para que el importe quede siempre pegado al margen derecho y en su misma
+ * línea, aunque el concepto ocupe dos renglones.
+ */
+function Fila({ label, valor, bold }: { label: string; valor: string; bold?: boolean }) {
+  return (
+    <div className={`flex items-start justify-between gap-2 ${bold ? "font-bold" : ""}`}>
+      <span className="min-w-0 break-words">{label}</span>
+      <span className="shrink-0 tabular-nums whitespace-nowrap">{valor}</span>
+    </div>
+  );
+}
+
 function TicketInner() {
   const params = useSearchParams();
   const id = params.get("id");
@@ -120,10 +139,37 @@ function TicketInner() {
 
   return (
     <>
-      {/* Formato ticketera térmica 80mm */}
-      <style>{`@media print { @page { size: 80mm auto; margin: 3mm; } body { margin: 0; } }`}</style>
+      {/* Formato ticketera térmica 80mm.
+          El layout de la app pone min-h-screen en el body: al imprimir eso vale
+          "una página completa", y la ticketera avanzaba todo ese papel en blanco
+          después del ticket. Aquí se anula para que el rollo corte al terminar. */}
+      <style>{`
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            background: #fff !important;
+          }
+          body > * { min-height: 0 !important; }
+          .ticket {
+            width: auto !important;
+            max-width: none !important;
+            margin: 0 !important;
+            /* Último avance mínimo para que la cuchilla no corte el texto. */
+            padding: 2mm 3mm 6mm !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}</style>
 
-      <div className="mx-auto bg-white p-3 text-black" style={{ width: "80mm", maxWidth: "100%", fontFamily: "ui-monospace, monospace" }}>
+      <div
+        className="ticket mx-auto bg-white p-3 text-black"
+        style={{ width: "80mm", maxWidth: "100%", fontFamily: "ui-monospace, monospace" }}
+      >
         <div className="mb-3 flex flex-wrap justify-center gap-2 print:hidden">
           <button onClick={() => window.print()} className="rounded bg-teal-600 px-3 py-1.5 text-xs font-medium text-white">
             Imprimir
@@ -146,51 +192,54 @@ function TicketInner() {
           )}
         </div>
 
-        <div className="text-center">
+        <div className="text-center leading-tight">
+          {/* El logo ya incluye el nombre del centro; si no carga, el texto
+              alternativo lo muestra igual. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-ticket.png" alt={config.nombre ?? "Ser y Crecer"} className="mx-auto mb-1 w-[46mm] max-w-[70%]" />
-          {config.ruc && <p className="text-[10px]">RUC {config.ruc}</p>}
-          {config.direccion && <p className="text-[10px]">{config.direccion}</p>}
-          {config.telefono && <p className="text-[10px]">{config.telefono}</p>}
+          <img
+            src="/brand/logo-ticket.png"
+            alt={config.nombre ?? "Ser y Crecer"}
+            className="mx-auto mb-1 w-[24mm] max-w-[45%] font-bold"
+          />
+          {config.ruc && <p className="text-[11px]">RUC {config.ruc}</p>}
+          {config.direccion && <p className="text-[11px]">{config.direccion}</p>}
+          {config.telefono && <p className="text-[11px]">{config.telefono}</p>}
         </div>
 
-        <p className="my-1 text-center text-[11px] font-bold">TICKET DE ATENCIÓN</p>
-        <div className="border-t border-dashed border-black" />
+        <p className="my-1.5 text-center text-[13px] font-bold tracking-wide">TICKET DE ATENCIÓN</p>
+        <Separador />
 
-        <div className="py-1 text-[11px] leading-tight">
-          <p>N° {String(atn.id).padStart(6, "0")}</p>
+        <div className="py-1 text-[12px] leading-snug">
+          <p><span className="font-bold">N° {String(atn.id).padStart(6, "0")}</span></p>
           <p>Fecha: {formatDate(atn.fecha)}{atn.hora ? ` ${atn.hora}` : ""}</p>
           <p>Paciente: {paciente}</p>
           {atn.paciente?.numDoc && <p>{atn.paciente.tipoDoc} {atn.paciente.numDoc}</p>}
           <p>Psicólogo: {atn.psicologo?.nombre ?? "—"}</p>
         </div>
 
-        <div className="border-t border-dashed border-black" />
-        <table className="w-full text-[11px]">
-          <tbody>
-            {atn.items.map((it) => (
-              <tr key={it.id}>
-                <td className="py-0.5 pr-1 align-top">{it.nombre}</td>
-                <td className="py-0.5 text-right align-top tabular-nums whitespace-nowrap">{formatPEN(N(it.monto))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Separador />
+        <div className="py-1 text-[12px] leading-snug">
+          {atn.items.map((it) => (
+            <Fila key={it.id} label={it.nombre} valor={formatPEN(N(it.monto))} />
+          ))}
+        </div>
 
-        <div className="border-t border-dashed border-black" />
-        <table className="w-full text-[11px]">
-          <tbody>
-            <tr className="font-bold"><td className="py-0.5">TOTAL</td><td className="py-0.5 text-right tabular-nums">{formatPEN(N(atn.total))}</td></tr>
-            <tr><td className="py-0.5">Pagado</td><td className="py-0.5 text-right tabular-nums">{formatPEN(N(atn.pagado))}</td></tr>
-            <tr><td className="py-0.5">Saldo</td><td className="py-0.5 text-right tabular-nums">{formatPEN(N(atn.saldo))}</td></tr>
-          </tbody>
-        </table>
-        <p className="mt-1 text-[11px]">Método: {metodos}</p>
-        <p className="text-[11px]">Estado: {atn.estado}</p>
+        <Separador />
+        <div className="py-1 text-[12px] leading-snug">
+          <Fila label="TOTAL" valor={formatPEN(N(atn.total))} bold />
+          <Fila label="Pagado" valor={formatPEN(N(atn.pagado))} />
+          <Fila label="Saldo" valor={formatPEN(N(atn.saldo))} />
+        </div>
 
-        <div className="mt-2 border-t border-dashed border-black" />
-        <p className="mt-2 text-center text-[10px]">¡Gracias por su preferencia!</p>
-        <p className="text-center text-[10px]">Ser y Crecer</p>
+        <Separador />
+        <div className="py-1 text-[12px] leading-snug">
+          <p>Método: {metodos}</p>
+          <p>Estado: {atn.estado}</p>
+        </div>
+
+        <Separador />
+        <p className="mt-2 text-center text-[11px]">¡Gracias por su preferencia!</p>
+        <p className="text-center text-[11px] font-bold">{config.nombre ?? "Ser y Crecer"}</p>
       </div>
     </>
   );
